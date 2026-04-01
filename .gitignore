@@ -1,0 +1,22 @@
+# Xcode user data
+xcuserdata/
+*.xcuserstate
+DerivedData/
+.DerivedData/
+
+# Swift package / build caches
+.build/
+.swift-module-cache/
+
+# macOS
+.DS_Store
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# Future secrets / config
+.env
+Secrets.plist
+Config.plist
+GoogleService-Info.plist
