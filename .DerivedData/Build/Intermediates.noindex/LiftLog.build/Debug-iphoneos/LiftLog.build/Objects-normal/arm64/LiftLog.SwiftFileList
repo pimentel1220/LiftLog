@@ -1,0 +1,17 @@
+/Users/carlos/Documents/LiftLog/LiftLog/App/LiftLogApp.swift
+/Users/carlos/Documents/LiftLog/LiftLog/App/RootTabView.swift
+/Users/carlos/Documents/LiftLog/LiftLog/Components/CommonViews.swift
+/Users/carlos/Documents/LiftLog/LiftLog/Models/LiftLogModels.swift
+/Users/carlos/Documents/LiftLog/LiftLog/Screens/Exercises/ExerciseDetailScreen.swift
+/Users/carlos/Documents/LiftLog/LiftLog/Screens/Exercises/ExercisesScreen.swift
+/Users/carlos/Documents/LiftLog/LiftLog/Screens/History/HistoryScreen.swift
+/Users/carlos/Documents/LiftLog/LiftLog/Screens/Home/HomeScreen.swift
+/Users/carlos/Documents/LiftLog/LiftLog/Screens/Progress/ProgressScreen.swift
+/Users/carlos/Documents/LiftLog/LiftLog/Screens/Settings/SettingsScreen.swift
+/Users/carlos/Documents/LiftLog/LiftLog/Screens/Workout/ActiveWorkoutScreen.swift
+/Users/carlos/Documents/LiftLog/LiftLog/Store/LiftLogStore.swift
+/Users/carlos/Documents/LiftLog/LiftLog/Store/Persistence.swift
+/Users/carlos/Documents/LiftLog/LiftLog/Store/SampleData.swift
+/Users/carlos/Documents/LiftLog/LiftLog/Theme/AppTheme.swift
+/Users/carlos/Documents/LiftLog/LiftLog/Models/ExerciseCatalog.swift
+/Users/carlos/Documents/LiftLog/LiftLog/Screens/PR/PRScreen.swift

@@ -1,0 +1,40 @@
+{
+  "source": "/Users/carlos/Documents/LiftLog/LiftLog/Screens/Exercises/ExerciseDetailScreen.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "Exercise not found",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 69
+        }
+      },
+      {
+        "comment": "",
+        "key": "Machine Notes",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 32
+        }
+      },
+      {
+        "comment": "",
+        "key": "Seat setting, pin level, form reminders",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 34
+        }
+      },
+      {
+        "comment": "",
+        "key": "Workout History",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 48
+        }
+      }
+    ]
+  },
+  "version": 1
+}
