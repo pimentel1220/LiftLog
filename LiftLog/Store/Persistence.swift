@@ -13,6 +13,11 @@ struct PersistenceController {
         return try? JSONDecoder.liftLog.decode(PersistedAppState.self, from: data)
     }
 
+    func lastSavedAt() -> Date? {
+        let values = try? fileURL.resourceValues(forKeys: [.contentModificationDateKey])
+        return values?.contentModificationDate
+    }
+
     @discardableResult
     func save(_ state: PersistedAppState) -> Bool {
         guard let data = try? JSONEncoder.liftLog.encode(state) else { return false }

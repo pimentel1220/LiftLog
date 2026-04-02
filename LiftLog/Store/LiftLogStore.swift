@@ -86,6 +86,11 @@ final class LiftLogStore: ObservableObject {
     }
 
     func startWorkout(copyLastWorkout: Bool = false) {
+        if hasActiveWorkout {
+            shouldPresentActiveWorkout = true
+            return
+        }
+
         if copyLastWorkout, let lastWorkout = recentWorkouts.first {
             let draftLogs = lastWorkout.exerciseLogs.map { log in
                 WorkoutExerciseLog(
@@ -455,7 +460,8 @@ final class LiftLogStore: ObservableObject {
         preferences = state.preferences
         shouldPresentActiveWorkout = false
         tier = state.tier
-        persist()
+        lastSavedAt = persistence.lastSavedAt()
+        hasSaveError = false
     }
 
     private func mutateLog(_ logID: UUID, change: (inout WorkoutExerciseLog) -> Void) {
