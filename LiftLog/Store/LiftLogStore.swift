@@ -30,6 +30,27 @@ final class LiftLogStore: ObservableObject {
         sortedExercises.filter { $0.category == category }
     }
 
+    func recentExercises(for category: ExerciseCategory? = nil, limit: Int = 6) -> [ExerciseDefinition] {
+        var seen = Set<UUID>()
+        var results: [ExerciseDefinition] = []
+
+        for workout in recentWorkouts {
+            for log in workout.exerciseLogs {
+                guard seen.insert(log.exerciseID).inserted,
+                      let exercise = exercise(for: log.exerciseID) else { continue }
+                if let category, exercise.category != category {
+                    continue
+                }
+                results.append(exercise)
+                if results.count >= limit {
+                    return results
+                }
+            }
+        }
+
+        return results
+    }
+
     var hasActiveWorkout: Bool {
         activeWorkout != nil
     }
@@ -106,9 +127,14 @@ final class LiftLogStore: ObservableObject {
     }
 
     func createExercise(name: String, category: ExerciseCategory, notes: String, favorite: Bool = false) -> ExerciseDefinition {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let existing = findExercise(named: trimmedName, category: category) {
+            return existing
+        }
+
         let exercise = ExerciseDefinition(
             id: UUID(),
-            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+            name: trimmedName,
             category: category,
             notes: notes,
             isFavorite: favorite,

@@ -366,6 +366,35 @@ private struct ExerciseTemplateTile: View {
     }
 }
 
+private struct ExercisePickerRow: View {
+    let title: String
+    let subtitle: String
+    var trailingIcon: String = "plus.circle.fill"
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .foregroundStyle(.white)
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .lineLimit(2)
+                }
+                Spacer()
+                Image(systemName: trailingIcon)
+                    .foregroundStyle(AppTheme.accent)
+            }
+            .padding(14)
+            .background(AppTheme.card)
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 private struct AddExerciseSheet: View {
     @EnvironmentObject private var store: LiftLogStore
     @Environment(\.dismiss) private var dismiss
@@ -384,6 +413,27 @@ private struct AddExerciseSheet: View {
         let base = store.exercises(for: selectedCategory)
         guard !searchText.isEmpty else { return base }
         return base.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+    }
+
+    private var favoriteExercises: [ExerciseDefinition] {
+        let filtered = store.favoriteExercises.filter { $0.category == selectedCategory }
+        guard !searchText.isEmpty else { return filtered }
+        return filtered.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+    }
+
+    private var recentExercises: [ExerciseDefinition] {
+        let filtered = store.recentExercises(for: selectedCategory)
+        guard !searchText.isEmpty else { return filtered }
+        return filtered.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+    }
+
+    private var savedExerciseRemainder: [ExerciseDefinition] {
+        let excludedIDs = Set(favoriteExercises.map(\.id) + recentExercises.map(\.id))
+        return savedExercises.filter { !excludedIDs.contains($0.id) }
+    }
+
+    private var hasResults: Bool {
+        !favoriteExercises.isEmpty || !recentExercises.isEmpty || !savedExerciseRemainder.isEmpty || !templates.isEmpty
     }
 
     var body: some View {
@@ -408,54 +458,85 @@ private struct AddExerciseSheet: View {
                         }
                     }
 
-                    if !savedExercises.isEmpty {
+                    if !favoriteExercises.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Your \(selectedCategory.rawValue)")
+                            Text("Favorites")
                                 .font(.headline)
-                            ForEach(savedExercises) { exercise in
-                                Button {
+                            ForEach(favoriteExercises) { exercise in
+                                ExercisePickerRow(
+                                    title: exercise.name,
+                                    subtitle: store.lastPerformance(for: exercise.id)?.summaryText ?? exercise.notes
+                                ) {
                                     store.addExerciseToActiveWorkout(exercise: exercise)
                                     dismiss()
-                                } label: {
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text(exercise.name)
-                                                .foregroundStyle(.white)
-                                            Text(store.lastPerformance(for: exercise.id)?.summaryText ?? exercise.notes)
-                                                .font(.caption)
-                                                .foregroundStyle(AppTheme.textSecondary)
-                                                .lineLimit(2)
-                                        }
-                                        Spacer()
-                                        Image(systemName: "plus.circle.fill")
-                                            .foregroundStyle(AppTheme.accent)
-                                    }
-                                    .padding(14)
-                                    .background(AppTheme.card)
-                                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                                 }
-                                .buttonStyle(.plain)
                             }
                         }
                     }
 
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(selectedCategory == .machines ? "Quick Picks" : "Popular Choices")
-                            .font(.headline)
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                            ForEach(templates) { template in
-                                ExerciseTemplateTile(template: template, subtitle: template.starterNotes) {
-                                    let exercise = store.ensureExercise(from: template)
+                    if !recentExercises.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Recent")
+                                .font(.headline)
+                            ForEach(recentExercises) { exercise in
+                                ExercisePickerRow(
+                                    title: exercise.name,
+                                    subtitle: store.lastPerformance(for: exercise.id)?.summaryText ?? exercise.notes,
+                                    trailingIcon: "clock.arrow.circlepath"
+                                ) {
                                     store.addExerciseToActiveWorkout(exercise: exercise)
                                     dismiss()
                                 }
                             }
                         }
+                    }
+
+                    if !savedExerciseRemainder.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Your \(selectedCategory.rawValue)")
+                                .font(.headline)
+                            ForEach(savedExerciseRemainder) { exercise in
+                                ExercisePickerRow(
+                                    title: exercise.name,
+                                    subtitle: store.lastPerformance(for: exercise.id)?.summaryText ?? exercise.notes
+                                ) {
+                                    store.addExerciseToActiveWorkout(exercise: exercise)
+                                    dismiss()
+                                }
+                            }
+                        }
+                    }
+
+                    if !templates.isEmpty {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text(selectedCategory == .machines ? "Quick Picks" : "Popular Choices")
+                                .font(.headline)
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                                ForEach(templates) { template in
+                                    ExerciseTemplateTile(template: template, subtitle: template.starterNotes) {
+                                        let exercise = store.ensureExercise(from: template)
+                                        store.addExerciseToActiveWorkout(exercise: exercise)
+                                        dismiss()
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if !hasResults {
+                        EmptyStateCard(
+                            title: "No matches yet",
+                            subtitle: "Try a different search or create a custom exercise below.",
+                            systemImage: "magnifyingglass"
+                        )
                     }
 
                     AppCard {
                         Text("Create Custom Exercise")
                             .font(.headline)
+                        Text("Use this for a machine or movement that is not already in your list.")
+                            .font(.subheadline)
+                            .foregroundStyle(AppTheme.textSecondary)
                         TextField("Exercise name", text: $newExerciseName)
                             .textFieldStyle(.plain)
                             .padding(12)
@@ -466,7 +547,7 @@ private struct AddExerciseSheet: View {
                             .padding(12)
                             .background(AppTheme.cardSecondary)
                             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                        Button("Create and Add") {
+                        Button(store.findExercise(named: newExerciseName.trimmingCharacters(in: .whitespacesAndNewlines), category: selectedCategory) == nil ? "Create and Add" : "Add Existing Exercise") {
                             let exercise = store.createExercise(name: newExerciseName, category: selectedCategory, notes: notes)
                             store.addExerciseToActiveWorkout(exercise: exercise)
                             dismiss()
