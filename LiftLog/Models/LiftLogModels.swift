@@ -25,8 +25,64 @@ enum AppTier: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+enum WeightUnit: String, Codable, CaseIterable, Identifiable, Hashable {
+    case pounds
+    case kilograms
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .pounds: "Pounds"
+        case .kilograms: "Kilograms"
+        }
+    }
+
+    var shortLabel: String {
+        switch self {
+        case .pounds: "lb"
+        case .kilograms: "kg"
+        }
+    }
+
+    func displayWeight(fromStoredPounds pounds: Double) -> Double {
+        switch self {
+        case .pounds:
+            pounds
+        case .kilograms:
+            pounds / 2.2046226218
+        }
+    }
+
+    func storedPounds(fromDisplayWeight value: Double) -> Double {
+        switch self {
+        case .pounds:
+            value
+        case .kilograms:
+            value * 2.2046226218
+        }
+    }
+}
+
 struct AppPreferences: Codable, Hashable {
     var syncPRsWithWorkouts = false
+    var weightUnit: WeightUnit = .pounds
+
+    enum CodingKeys: String, CodingKey {
+        case syncPRsWithWorkouts
+        case weightUnit
+    }
+
+    init(syncPRsWithWorkouts: Bool = false, weightUnit: WeightUnit = .pounds) {
+        self.syncPRsWithWorkouts = syncPRsWithWorkouts
+        self.weightUnit = weightUnit
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        syncPRsWithWorkouts = try container.decodeIfPresent(Bool.self, forKey: .syncPRsWithWorkouts) ?? false
+        weightUnit = try container.decodeIfPresent(WeightUnit.self, forKey: .weightUnit) ?? .pounds
+    }
 }
 
 struct ExerciseDefinition: Identifiable, Codable, Hashable {
@@ -241,7 +297,7 @@ struct ExerciseTemplate: Identifiable, Hashable {
 }
 
 struct PersistedAppState: Codable {
-    static let currentSchemaVersion = 2
+    static let currentSchemaVersion = 3
 
     var exercises: [ExerciseDefinition]
     var workouts: [Workout]

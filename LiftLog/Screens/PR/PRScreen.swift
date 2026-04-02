@@ -6,6 +6,12 @@ struct PRScreen: View {
 
     var body: some View {
         AppScreen(title: "PRs") {
+            if store.hasActiveWorkout {
+                ActiveWorkoutBanner {
+                    store.resumeActiveWorkout()
+                }
+            }
+
             AppCard {
                 Text("PR Tracker")
                     .font(.headline)
@@ -20,7 +26,7 @@ struct PRScreen: View {
             if store.sortedPRRecords.isEmpty {
                 EmptyStateCard(
                     title: "No PRs yet",
-                    subtitle: "Add a max lift like Bench Press 185 lb and keep all your PRs in one place.",
+                    subtitle: "Add a max lift like Bench Press \(store.formattedDisplayWeight(store.quickPRWeightSuggestions[store.quickPRWeightSuggestions.count / 2])) and keep all your PRs in one place.",
                     systemImage: "trophy"
                 )
             } else {
@@ -41,7 +47,7 @@ struct PRScreen: View {
                             }
                             Spacer()
                             VStack(alignment: .trailing, spacing: 8) {
-                                Text(AppFormat.weight(record.weight))
+                                Text(store.formattedWeight(record.weight))
                                     .font(.headline.weight(.bold))
                                     .foregroundStyle(.yellow)
                                 Button(role: .destructive) {
@@ -156,6 +162,10 @@ private struct AddPRSheet: View {
                                         .background(AppTheme.cardSecondary)
                                         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
+                                    Text(store.weightUnit.shortLabel)
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(AppTheme.textSecondary)
+
                                     Button {
                                         adjustWeight(by: 5)
                                     } label: {
@@ -168,9 +178,12 @@ private struct AddPRSheet: View {
                                 }
 
                                 HStack(spacing: 8) {
-                                    ForEach([45.0, 95.0, 135.0, 185.0, 225.0], id: \.self) { quickWeight in
-                                        Button(AppFormat.weight(quickWeight)) {
-                                            weight = AppFormat.editableWeight(quickWeight)
+                                    ForEach(store.quickPRWeightSuggestions, id: \.self) { quickWeight in
+                                        Button(store.formattedDisplayWeight(quickWeight)) {
+                                            weight = AppFormat.editableWeight(
+                                                store.weightUnit.storedPounds(fromDisplayWeight: quickWeight),
+                                                unit: store.weightUnit
+                                            )
                                         }
                                         .font(.caption.weight(.semibold))
                                         .padding(.horizontal, 12)
@@ -196,7 +209,7 @@ private struct AddPRSheet: View {
                     selectedExerciseID = selection.exerciseID
                     name = selection.name
                     if weight.isEmpty, let suggestedWeight = selection.suggestedWeight {
-                        weight = AppFormat.editableWeight(suggestedWeight)
+                        weight = store.editableWeight(suggestedWeight)
                     }
                 }
                 .environmentObject(store)
@@ -210,7 +223,7 @@ private struct AddPRSheet: View {
                         store.addPRRecord(
                             exerciseID: selectedExerciseID,
                             name: name,
-                            weight: Double(weight) ?? 0,
+                            weight: store.weightUnit.storedPounds(fromDisplayWeight: Double(weight) ?? 0),
                             date: date,
                             notes: notes
                         )
@@ -225,7 +238,10 @@ private struct AddPRSheet: View {
     private func adjustWeight(by delta: Double) {
         let currentWeight = Double(weight) ?? 0
         let nextWeight = max(0, currentWeight + delta)
-        weight = AppFormat.editableWeight(nextWeight)
+        weight = AppFormat.editableWeight(
+            store.weightUnit.storedPounds(fromDisplayWeight: nextWeight),
+            unit: store.weightUnit
+        )
     }
 }
 

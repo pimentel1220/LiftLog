@@ -24,8 +24,8 @@ struct ExerciseDetailScreen: View {
                                     .foregroundStyle(exercise.isFavorite ? .yellow : AppTheme.textSecondary)
                             }
                         }
-                        LastTimeBanner(performance: store.lastPerformance(for: exercise.id))
-                        PRBanner(personalRecord: store.personalRecord(for: exercise.id))
+                        LastTimeBanner(performance: store.lastPerformance(for: exercise.id), weightUnit: store.weightUnit)
+                        PRBanner(personalRecord: store.personalRecord(for: exercise.id), weightUnit: store.weightUnit)
                     }
 
                     AppCard {
@@ -70,7 +70,7 @@ struct ExerciseDetailScreen: View {
                                 VStack(alignment: .leading, spacing: 6) {
                                     Text(AppFormat.shortDate(item.workout.startedAt))
                                         .font(.subheadline.weight(.semibold))
-                                    Text(item.log.sets.map { "\(AppFormat.weight($0.weight)) x \($0.reps)" }.joined(separator: "   "))
+                                    Text(item.log.sets.map { "\(store.formattedWeight($0.weight)) x \($0.reps)" }.joined(separator: "   "))
                                         .font(.caption)
                                         .foregroundStyle(AppTheme.textSecondary)
                                 }

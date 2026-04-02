@@ -72,6 +72,19 @@ final class LiftLogStore: ObservableObject {
         preferences.syncPRsWithWorkouts
     }
 
+    var weightUnit: WeightUnit {
+        preferences.weightUnit
+    }
+
+    var quickPRWeightSuggestions: [Double] {
+        switch weightUnit {
+        case .pounds:
+            [45, 95, 135, 185, 225]
+        case .kilograms:
+            [20, 40, 60, 80, 100]
+        }
+    }
+
     func startWorkout(copyLastWorkout: Bool = false) {
         if copyLastWorkout, let lastWorkout = recentWorkouts.first {
             let draftLogs = lastWorkout.exerciseLogs.map { log in
@@ -245,6 +258,20 @@ final class LiftLogStore: ObservableObject {
         }
     }
 
+    func updateSetWeightDisplayDelta(logID: UUID, setID: UUID, delta: Double) {
+        mutateSet(logID: logID, setID: setID) { set in
+            let currentValue = weightUnit.displayWeight(fromStoredPounds: set.weight)
+            let nextValue = max(0, currentValue + delta)
+            set.weight = weightUnit.storedPounds(fromDisplayWeight: nextValue)
+        }
+    }
+
+    func updateSetWeight(logID: UUID, setID: UUID, toDisplayValue value: Double) {
+        mutateSet(logID: logID, setID: setID) { set in
+            set.weight = max(0, weightUnit.storedPounds(fromDisplayWeight: value))
+        }
+    }
+
     func updateSetReps(logID: UUID, setID: UUID, delta: Int) {
         mutateSet(logID: logID, setID: setID) { set in
             set.reps = max(1, set.reps + delta)
@@ -282,6 +309,11 @@ final class LiftLogStore: ObservableObject {
 
     func setSyncPRsWithWorkouts(_ isEnabled: Bool) {
         preferences.syncPRsWithWorkouts = isEnabled
+        persist()
+    }
+
+    func setWeightUnit(_ unit: WeightUnit) {
+        preferences.weightUnit = unit
         persist()
     }
 
@@ -341,6 +373,27 @@ final class LiftLogStore: ObservableObject {
                 }
                 return lhs.weight < rhs.weight
             }
+    }
+
+    func formattedWeight(_ storedPounds: Double) -> String {
+        AppFormat.weight(storedPounds, unit: weightUnit)
+    }
+
+    func editableWeight(_ storedPounds: Double) -> String {
+        AppFormat.editableWeight(storedPounds, unit: weightUnit)
+    }
+
+    func formattedDisplayWeight(_ value: Double) -> String {
+        AppFormat.displayWeight(value, unit: weightUnit)
+    }
+
+    func formattedLastPerformance(_ performance: LastPerformance) -> String {
+        "Last time: \(formattedWeight(performance.weight)) x \(performance.reps) on \(AppFormat.shortDate(performance.date))"
+    }
+
+    func lastPerformanceSummary(for exerciseID: UUID) -> String? {
+        guard let performance = lastPerformance(for: exerciseID) else { return nil }
+        return formattedLastPerformance(performance)
     }
 
     func exerciseStats() -> [ExerciseStat] {

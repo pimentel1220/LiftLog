@@ -144,7 +144,7 @@ private struct ActiveExerciseCard: View {
                 }
             }
 
-            LastTimeBanner(performance: store.lastPerformance(for: log.exerciseID))
+            LastTimeBanner(performance: store.lastPerformance(for: log.exerciseID), weightUnit: store.weightUnit)
 
             if !log.notes.isEmpty {
                 Text(log.notes)
@@ -179,6 +179,7 @@ private struct SetEditorRow: View {
     let logID: UUID
     let setNumber: Int
     let set: ExerciseSet
+    @State private var editingField: EditableMetricField?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -195,33 +196,25 @@ private struct SetEditorRow: View {
                 }
             }
 
-            HStack(spacing: 12) {
-                CompactMetricEditor(
-                    title: "Weight",
-                    value: set.weight == 0 ? "Body" : AppFormat.editableWeight(set.weight),
-                    subtitle: set.weight == 0 ? "bodyweight" : "lb",
-                    decrement: { store.updateSetWeight(logID: logID, setID: set.id, delta: -5) },
-                    increment: { store.updateSetWeight(logID: logID, setID: set.id, delta: 5) }
-                )
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) {
+                    metricEditors
+                }
 
-                CompactMetricEditor(
-                    title: "Reps",
-                    value: "\(set.reps)",
-                    subtitle: "target",
-                    decrement: { store.updateSetReps(logID: logID, setID: set.id, delta: -1) },
-                    increment: { store.updateSetReps(logID: logID, setID: set.id, delta: 1) }
-                )
+                VStack(spacing: 12) {
+                    metricEditors
+                }
             }
 
-            HStack(spacing: 8) {
+            LazyVGrid(columns: quickChipColumns, spacing: 8) {
                 QuickValueChip(label: "Body", isActive: set.weight == 0) {
-                    store.updateSetWeight(logID: logID, setID: set.id, delta: -set.weight)
+                    store.updateSetWeight(logID: logID, setID: set.id, toDisplayValue: 0)
                 }
                 QuickValueChip(label: "+5") {
-                    store.updateSetWeight(logID: logID, setID: set.id, delta: 5)
+                    store.updateSetWeightDisplayDelta(logID: logID, setID: set.id, delta: 5)
                 }
                 QuickValueChip(label: "+10") {
-                    store.updateSetWeight(logID: logID, setID: set.id, delta: 10)
+                    store.updateSetWeightDisplayDelta(logID: logID, setID: set.id, delta: 10)
                 }
                 QuickValueChip(label: "8 reps") {
                     store.updateSetReps(logID: logID, setID: set.id, to: 8)
@@ -234,6 +227,61 @@ private struct SetEditorRow: View {
         .padding(14)
         .background(AppTheme.cardSecondary)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .sheet(item: $editingField) { field in
+            ExactMetricEntrySheet(
+                title: field == .weight ? "Set weight" : "Set reps",
+                subtitle: field == .weight
+                    ? "Enter a \(store.weightUnit.shortLabel) value. Use 0 for bodyweight."
+                    : "Enter the reps for this set.",
+                initialValue: field == .weight ? store.editableWeight(set.weight) : "\(set.reps)",
+                keyboardType: field == .weight ? .decimalPad : .numberPad,
+                isValid: { value in
+                    let trimmedValue = value.trimmingCharacters(in: .whitespacesAndNewlines)
+                    switch field {
+                    case .weight:
+                        return (Double(trimmedValue) ?? -1) >= 0
+                    case .reps:
+                        return (Int(trimmedValue) ?? 0) > 0
+                    }
+                }
+            ) { value in
+                switch field {
+                case .weight:
+                    guard let exactWeight = Double(value) else { return }
+                    store.updateSetWeight(logID: logID, setID: set.id, toDisplayValue: exactWeight)
+                case .reps:
+                    guard let exactReps = Int(value) else { return }
+                    store.updateSetReps(logID: logID, setID: set.id, to: exactReps)
+                }
+            }
+        }
+    }
+
+    private var quickChipColumns: [GridItem] {
+        [
+            GridItem(.adaptive(minimum: 88, maximum: 140), spacing: 8)
+        ]
+    }
+
+    @ViewBuilder
+    private var metricEditors: some View {
+        CompactMetricEditor(
+            title: "Weight",
+            value: set.weight == 0 ? "Body" : store.editableWeight(set.weight),
+            subtitle: set.weight == 0 ? "bodyweight" : store.weightUnit.shortLabel,
+            decrement: { store.updateSetWeightDisplayDelta(logID: logID, setID: set.id, delta: -5) },
+            increment: { store.updateSetWeightDisplayDelta(logID: logID, setID: set.id, delta: 5) },
+            onTapValue: { editingField = .weight }
+        )
+
+        CompactMetricEditor(
+            title: "Reps",
+            value: "\(set.reps)",
+            subtitle: "target",
+            decrement: { store.updateSetReps(logID: logID, setID: set.id, delta: -1) },
+            increment: { store.updateSetReps(logID: logID, setID: set.id, delta: 1) },
+            onTapValue: { editingField = .reps }
+        )
     }
 }
 
@@ -243,6 +291,7 @@ private struct CompactMetricEditor: View {
     let subtitle: String
     let decrement: () -> Void
     let increment: () -> Void
+    let onTapValue: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -256,8 +305,16 @@ private struct CompactMetricEditor: View {
                 }
 
                 VStack(spacing: 2) {
-                    Text(value)
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                    Button(action: onTapValue) {
+                        Text(value)
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.55)
+                            .allowsTightening(true)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.plain)
                     Text(subtitle)
                         .font(.caption2)
                         .foregroundStyle(AppTheme.textSecondary)
@@ -270,6 +327,70 @@ private struct CompactMetricEditor: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private enum EditableMetricField: String, Identifiable {
+    case weight
+    case reps
+
+    var id: String { rawValue }
+}
+
+private struct ExactMetricEntrySheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let title: String
+    let subtitle: String
+    let keyboardType: UIKeyboardType
+    let isValid: (String) -> Bool
+    let onSave: (String) -> Void
+    @State private var value: String
+
+    init(title: String, subtitle: String, initialValue: String, keyboardType: UIKeyboardType, isValid: @escaping (String) -> Bool, onSave: @escaping (String) -> Void) {
+        self.title = title
+        self.subtitle = subtitle
+        self.keyboardType = keyboardType
+        self.isValid = isValid
+        self.onSave = onSave
+        _value = State(initialValue: initialValue)
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 16) {
+                AppCard {
+                    Text(title)
+                        .font(.headline)
+                    Text(subtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.textSecondary)
+                    TextField("Enter value", text: $value)
+                        .keyboardType(keyboardType)
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .multilineTextAlignment(.center)
+                        .padding(.vertical, 16)
+                        .frame(maxWidth: .infinity)
+                        .background(AppTheme.cardSecondary)
+                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                }
+                Spacer()
+            }
+            .padding(20)
+            .background(AppTheme.background.ignoresSafeArea())
+            .navigationTitle(title)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Save") {
+                        onSave(value.trimmingCharacters(in: .whitespacesAndNewlines))
+                        dismiss()
+                    }
+                    .disabled(!isValid(value))
+                }
+            }
+        }
     }
 }
 
@@ -301,6 +422,9 @@ private struct QuickValueChip: View {
         Button(action: action) {
             Text(label)
                 .font(.caption.weight(.semibold))
+                .lineLimit(2)
+                .minimumScaleFactor(0.75)
+                .multilineTextAlignment(.center)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)
@@ -498,7 +622,7 @@ private struct AddExerciseSheet: View {
                             ForEach(favoriteExercises) { exercise in
                                 ExercisePickerRow(
                                     title: exercise.name,
-                                    subtitle: store.lastPerformance(for: exercise.id)?.summaryText ?? exercise.notes
+                                    subtitle: store.lastPerformanceSummary(for: exercise.id) ?? exercise.notes
                                 ) {
                                     store.addExerciseToActiveWorkout(exercise: exercise)
                                     dismiss()
@@ -514,7 +638,7 @@ private struct AddExerciseSheet: View {
                             ForEach(recentExercises) { exercise in
                                 ExercisePickerRow(
                                     title: exercise.name,
-                                    subtitle: store.lastPerformance(for: exercise.id)?.summaryText ?? exercise.notes,
+                                    subtitle: store.lastPerformanceSummary(for: exercise.id) ?? exercise.notes,
                                     trailingIcon: "clock.arrow.circlepath"
                                 ) {
                                     store.addExerciseToActiveWorkout(exercise: exercise)
@@ -531,7 +655,7 @@ private struct AddExerciseSheet: View {
                             ForEach(savedExerciseRemainder) { exercise in
                                 ExercisePickerRow(
                                     title: exercise.name,
-                                    subtitle: store.lastPerformance(for: exercise.id)?.summaryText ?? exercise.notes
+                                    subtitle: store.lastPerformanceSummary(for: exercise.id) ?? exercise.notes
                                 ) {
                                     store.addExerciseToActiveWorkout(exercise: exercise)
                                     dismiss()

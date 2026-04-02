@@ -9,8 +9,27 @@ struct SettingsScreen: View {
                 Text("App")
                     .font(.headline)
                 settingRow(title: "Storage", value: "Local on this device")
+                settingRow(title: "Weight Unit", value: store.weightUnit.title)
                 settingRow(title: "Plan", value: store.tier.rawValue.capitalized)
                 settingRow(title: "Cloud Sync", value: "Ready for v2")
+            }
+
+            AppCard {
+                Text("Weight Units")
+                    .font(.headline)
+                Text("Choose how weights appear throughout LiftLog. Your saved data stays correct and converts automatically.")
+                    .font(.subheadline)
+                    .foregroundStyle(AppTheme.textSecondary)
+
+                Picker("Weight Unit", selection: Binding(
+                    get: { store.weightUnit },
+                    set: { store.setWeightUnit($0) }
+                )) {
+                    ForEach(WeightUnit.allCases) { unit in
+                        Text(unit.title).tag(unit)
+                    }
+                }
+                .pickerStyle(.segmented)
             }
 
             AppCard {

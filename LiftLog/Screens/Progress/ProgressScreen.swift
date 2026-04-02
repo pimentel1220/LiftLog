@@ -9,6 +9,12 @@ struct ProgressScreen: View {
 
     var body: some View {
         AppScreen(title: "Progress") {
+            if store.hasActiveWorkout {
+                ActiveWorkoutBanner {
+                    store.resumeActiveWorkout()
+                }
+            }
+
             if stats.isEmpty {
                 EmptyStateCard(
                     title: "Progress gets useful after your first few workouts",
@@ -40,11 +46,11 @@ struct ProgressScreen: View {
                             HStack {
                                 Text(stat.name)
                                 Spacer()
-                                Text(AppFormat.weight(stat.maxWeight))
+                                Text(store.formattedWeight(stat.maxWeight))
                                     .fontWeight(.semibold)
                             }
                             ProgressBar(value: stat.recentWeight, maxValue: max(stat.maxWeight, 1))
-                            Text("Recent: \(AppFormat.weight(stat.recentWeight))")
+                            Text("Recent: \(store.formattedWeight(stat.recentWeight))")
                                 .font(.caption)
                                 .foregroundStyle(AppTheme.textSecondary)
                         }
@@ -63,7 +69,7 @@ struct ProgressScreen: View {
                                     .foregroundStyle(AppTheme.textSecondary)
                             }
                             Spacer()
-                            Text(AppFormat.weight(stat.maxWeight))
+                            Text(store.formattedWeight(stat.maxWeight))
                                 .foregroundStyle(AppTheme.accent)
                                 .fontWeight(.semibold)
                         }

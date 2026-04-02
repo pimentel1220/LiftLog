@@ -72,7 +72,7 @@ struct HomeScreen: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(log.exerciseName)
-                                Text(log.sets.last.map { "\($0.weight == 0 ? "Bodyweight" : AppFormat.weight($0.weight)) x \($0.reps)" } ?? "No sets")
+                                Text(log.sets.last.map { "\(store.formattedWeight($0.weight)) x \($0.reps)" } ?? "No sets")
                                     .font(.caption)
                                     .foregroundStyle(AppTheme.textSecondary)
                             }
@@ -102,7 +102,7 @@ struct HomeScreen: View {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(exercise.name)
                                         .foregroundStyle(.white)
-                                    Text(store.lastPerformance(for: exercise.id)?.summaryText ?? "No history yet")
+                                    Text(store.lastPerformanceSummary(for: exercise.id) ?? "No history yet")
                                         .font(.caption)
                                         .foregroundStyle(AppTheme.textSecondary)
                                 }

@@ -31,18 +31,33 @@ enum AppFormat {
         return formatter.string(from: date)
     }
 
-    static func weight(_ value: Double) -> String {
+    static func weight(_ value: Double, unit: WeightUnit = .pounds) -> String {
         if value == 0 { return "Bodyweight" }
-        if value.rounded(.down) == value {
-            return "\(Int(value)) lb"
+        let displayValue = unit.displayWeight(fromStoredPounds: value)
+        let roundedValue = roundedWeightValue(displayValue)
+        if roundedValue.rounded(.down) == roundedValue {
+            return "\(Int(roundedValue)) \(unit.shortLabel)"
         }
-        return String(format: "%.1f lb", value)
+        return String(format: "%.1f %@", roundedValue, unit.shortLabel)
     }
 
-    static func editableWeight(_ value: Double) -> String {
-        if value.rounded(.down) == value {
-            return "\(Int(value))"
+    static func editableWeight(_ value: Double, unit: WeightUnit = .pounds) -> String {
+        let displayValue = roundedWeightValue(unit.displayWeight(fromStoredPounds: value))
+        if displayValue.rounded(.down) == displayValue {
+            return "\(Int(displayValue))"
         }
-        return String(format: "%.1f", value)
+        return String(format: "%.1f", displayValue)
+    }
+
+    static func displayWeight(_ value: Double, unit: WeightUnit) -> String {
+        let roundedValue = roundedWeightValue(value)
+        if roundedValue.rounded(.down) == roundedValue {
+            return "\(Int(roundedValue)) \(unit.shortLabel)"
+        }
+        return String(format: "%.1f %@", roundedValue, unit.shortLabel)
+    }
+
+    private static func roundedWeightValue(_ value: Double) -> Double {
+        (value * 10).rounded() / 10
     }
 }

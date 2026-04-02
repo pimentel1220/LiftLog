@@ -82,6 +82,7 @@ struct SecondaryActionButton: View {
 
 struct LastTimeBanner: View {
     let performance: LastPerformance?
+    var weightUnit: WeightUnit = .pounds
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -92,7 +93,7 @@ struct LastTimeBanner: View {
                 Text("Last time")
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
-                Text(performance?.summaryText.replacingOccurrences(of: "Last time: ", with: "") ?? "No previous workout yet")
+                Text(lastTimeText)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.white)
             }
@@ -101,6 +102,11 @@ struct LastTimeBanner: View {
         .padding(14)
         .background(AppTheme.cardSecondary)
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private var lastTimeText: String {
+        guard let performance else { return "No previous workout yet" }
+        return "\(AppFormat.weight(performance.weight, unit: weightUnit)) x \(performance.reps) on \(AppFormat.shortDate(performance.date))"
     }
 }
 
@@ -120,6 +126,7 @@ struct CategoryPill: View {
 
 struct PRBanner: View {
     let personalRecord: PersonalRecord?
+    var weightUnit: WeightUnit = .pounds
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -131,7 +138,7 @@ struct PRBanner: View {
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
                 if let personalRecord {
-                    Text(personalRecord.summaryText)
+                    Text("\(AppFormat.weight(personalRecord.weight, unit: weightUnit)) x \(personalRecord.reps)")
                         .font(.headline.weight(.bold))
                         .foregroundStyle(.white)
                     Text("Best weight on \(AppFormat.shortDate(personalRecord.date))")
@@ -186,6 +193,32 @@ struct EmptyStateCard: View {
                         action()
                     }
                 }
+            }
+        }
+    }
+}
+
+struct ActiveWorkoutBanner: View {
+    let action: () -> Void
+
+    var body: some View {
+        AppCard {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "figure.strengthtraining.traditional")
+                    .foregroundStyle(AppTheme.accent)
+                    .font(.title3)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Workout in progress")
+                        .font(.headline)
+                    Text("Your current workout is still open. Jump back in anytime and keep logging.")
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+                Spacer()
+            }
+
+            PrimaryActionButton(title: "Continue Workout", systemImage: "arrow.clockwise") {
+                action()
             }
         }
     }

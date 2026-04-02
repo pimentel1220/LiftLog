@@ -17,6 +17,12 @@ struct HistoryScreen: View {
 
     var body: some View {
         AppScreen(title: "History") {
+            if store.hasActiveWorkout {
+                ActiveWorkoutBanner {
+                    store.resumeActiveWorkout()
+                }
+            }
+
             if store.recentWorkouts.isEmpty {
                 EmptyStateCard(
                     title: "Your workouts will show up here",
@@ -58,6 +64,7 @@ struct HistoryScreen: View {
 }
 
 private struct WorkoutHistoryCard: View {
+    @EnvironmentObject private var store: LiftLogStore
     let workout: Workout
 
     var body: some View {
@@ -84,7 +91,7 @@ private struct WorkoutHistoryCard: View {
                     Text(log.exerciseName)
                         .foregroundStyle(.white)
                     Spacer()
-                    Text(log.sets.last.map { "\(AppFormat.weight($0.weight)) x \($0.reps)" } ?? "No sets")
+                    Text(log.sets.last.map { "\(store.formattedWeight($0.weight)) x \($0.reps)" } ?? "No sets")
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
                 }
@@ -100,6 +107,7 @@ private struct WorkoutHistoryCard: View {
 }
 
 private struct WorkoutDetailScreen: View {
+    @EnvironmentObject private var store: LiftLogStore
     let workout: Workout
 
     var body: some View {
@@ -144,7 +152,7 @@ private struct WorkoutDetailScreen: View {
                             Text("Set \(index + 1)")
                                 .foregroundStyle(AppTheme.textSecondary)
                             Spacer()
-                            Text(AppFormat.weight(set.weight))
+                            Text(store.formattedWeight(set.weight))
                             Text("x \(set.reps)")
                                 .foregroundStyle(AppTheme.textSecondary)
                         }

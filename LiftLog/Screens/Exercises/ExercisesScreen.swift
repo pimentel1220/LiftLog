@@ -11,6 +11,12 @@ struct ExercisesScreen: View {
 
     var body: some View {
         AppScreen(title: "Exercises") {
+            if store.hasActiveWorkout {
+                ActiveWorkoutBanner {
+                    store.resumeActiveWorkout()
+                }
+            }
+
             if filteredExercises.isEmpty {
                 if store.sortedExercises.isEmpty {
                     EmptyStateCard(
@@ -45,7 +51,7 @@ struct ExercisesScreen: View {
                                         .font(.headline)
                                         .foregroundStyle(.white)
                                     CategoryPill(category: exercise.category)
-                                    Text(store.lastPerformance(for: exercise.id)?.summaryText ?? "No history yet")
+                                    Text(store.lastPerformanceSummary(for: exercise.id) ?? "No history yet")
                                         .font(.subheadline.weight(.semibold))
                                         .foregroundStyle(AppTheme.textSecondary)
                                     if !exercise.notes.isEmpty {
