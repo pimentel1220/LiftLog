@@ -90,49 +90,16 @@ struct HomeScreen: View {
                     }
                 }
             }
-
-            AppCard {
-                Text("Quick Access")
-                    .font(.headline)
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
                 NavigationLink {
-                    ExercisesScreen()
+                    SettingsScreen()
                 } label: {
-                    HomeShortcutRow(title: "Exercises", subtitle: "See saved lifts and last used weight")
-                }
-
-                NavigationLink {
-                    HistoryScreen()
-                } label: {
-                    HomeShortcutRow(title: "History", subtitle: "Review past workouts by date")
-                }
-
-                NavigationLink {
-                    ProgressScreen()
-                } label: {
-                    HomeShortcutRow(title: "Progress", subtitle: "Check personal bests and trends")
+                    Image(systemName: "gearshape.fill")
+                        .foregroundStyle(AppTheme.textSecondary)
                 }
             }
         }
-    }
-}
-
-private struct HomeShortcutRow: View {
-    let title: String
-    let subtitle: String
-
-    var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .foregroundStyle(.white)
-                Text(subtitle)
-                    .font(.caption)
-                    .foregroundStyle(AppTheme.textSecondary)
-            }
-            Spacer()
-            Image(systemName: "chevron.right")
-                .foregroundStyle(AppTheme.textSecondary)
-        }
-        .padding(.vertical, 2)
     }
 }

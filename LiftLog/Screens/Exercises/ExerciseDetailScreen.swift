@@ -29,8 +29,11 @@ struct ExerciseDetailScreen: View {
                     }
 
                     AppCard {
-                        Text("Machine Notes")
+                        Text("Setup Notes")
                             .font(.headline)
+                        Text("Save seat settings, machine levels, or form reminders so the next workout feels automatic.")
+                            .font(.subheadline)
+                            .foregroundStyle(AppTheme.textSecondary)
                         TextField("Seat setting, pin level, form reminders", text: Binding(
                             get: { editedNotes },
                             set: { newValue in
@@ -48,16 +51,22 @@ struct ExerciseDetailScreen: View {
                         Text("Workout History")
                             .font(.headline)
                         let history = store.history(for: exercise.id)
-                        ForEach(history, id: \.workout.id) { item in
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(AppFormat.shortDate(item.workout.startedAt))
-                                    .font(.subheadline.weight(.semibold))
-                                Text(item.log.sets.map { "\(AppFormat.weight($0.weight)) x \($0.reps)" }.joined(separator: "   "))
-                                    .font(.caption)
-                                    .foregroundStyle(AppTheme.textSecondary)
-                            }
-                            if item.workout.id != history.last?.workout.id {
-                                Divider().overlay(AppTheme.border)
+                        if history.isEmpty {
+                            Text("No history yet. Log this exercise in a workout and LiftLog will show your last lift here.")
+                                .font(.subheadline)
+                                .foregroundStyle(AppTheme.textSecondary)
+                        } else {
+                            ForEach(history, id: \.workout.id) { item in
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text(AppFormat.shortDate(item.workout.startedAt))
+                                        .font(.subheadline.weight(.semibold))
+                                    Text(item.log.sets.map { "\(AppFormat.weight($0.weight)) x \($0.reps)" }.joined(separator: "   "))
+                                        .font(.caption)
+                                        .foregroundStyle(AppTheme.textSecondary)
+                                }
+                                if item.workout.id != history.last?.workout.id {
+                                    Divider().overlay(AppTheme.border)
+                                }
                             }
                         }
                     }

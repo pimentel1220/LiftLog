@@ -39,13 +39,6 @@ struct RootTabView: View {
             .tabItem {
                 Label("Progress", systemImage: "chart.line.uptrend.xyaxis")
             }
-
-            NavigationStack {
-                SettingsScreen()
-            }
-            .tabItem {
-                Label("Settings", systemImage: "gearshape.fill")
-            }
         }
         .tint(AppTheme.accent)
         .fullScreenCover(isPresented: workoutCoverBinding) {

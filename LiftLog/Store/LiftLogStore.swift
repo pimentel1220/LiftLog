@@ -148,10 +148,11 @@ final class LiftLogStore: ObservableObject {
             }
         }
 
-        if activeWorkout != nil {
-            for logIndex in activeWorkout!.exerciseLogs.indices where activeWorkout!.exerciseLogs[logIndex].exerciseID == exerciseID {
-                activeWorkout!.exerciseLogs[logIndex].notes = notes
+        if var draft = activeWorkout {
+            for logIndex in draft.exerciseLogs.indices where draft.exerciseLogs[logIndex].exerciseID == exerciseID {
+                draft.exerciseLogs[logIndex].notes = notes
             }
+            activeWorkout = draft
         }
 
         persist()

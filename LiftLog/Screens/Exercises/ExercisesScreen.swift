@@ -30,8 +30,14 @@ struct ExercisesScreen: View {
                                         .foregroundStyle(.white)
                                     CategoryPill(category: exercise.category)
                                     Text(store.lastPerformance(for: exercise.id)?.summaryText ?? "No history yet")
-                                        .font(.subheadline)
+                                        .font(.subheadline.weight(.semibold))
                                         .foregroundStyle(AppTheme.textSecondary)
+                                    if !exercise.notes.isEmpty {
+                                        Text(exercise.notes)
+                                            .font(.caption)
+                                            .foregroundStyle(AppTheme.textSecondary)
+                                            .lineLimit(1)
+                                    }
                                 }
                                 Spacer()
                                 if exercise.isFavorite {
