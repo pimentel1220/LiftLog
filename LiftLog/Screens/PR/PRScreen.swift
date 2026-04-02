@@ -65,6 +65,7 @@ struct PRScreen: View {
 private struct AddPRSheet: View {
     @EnvironmentObject private var store: LiftLogStore
     @Environment(\.dismiss) private var dismiss
+    @State private var selectedExerciseID: UUID?
     @State private var name = ""
     @State private var weight = ""
     @State private var date = Date()
@@ -115,7 +116,15 @@ private struct AddPRSheet: View {
                                 }
                                 .buttonStyle(.plain)
 
-                                TextField("Or type a custom lift", text: $name)
+                                TextField("Or type a custom lift", text: Binding(
+                                    get: { name },
+                                    set: { newValue in
+                                        if newValue != name {
+                                            selectedExerciseID = nil
+                                        }
+                                        name = newValue
+                                    }
+                                ))
                                     .textInputAutocapitalization(.words)
                                     .padding(.horizontal, 14)
                                     .padding(.vertical, 12)
@@ -184,6 +193,7 @@ private struct AddPRSheet: View {
             .navigationTitle("Add PR")
             .sheet(isPresented: $isShowingExercisePicker) {
                 PRExercisePickerSheet { selection in
+                    selectedExerciseID = selection.exerciseID
                     name = selection.name
                     if weight.isEmpty, let suggestedWeight = selection.suggestedWeight {
                         weight = AppFormat.editableWeight(suggestedWeight)
@@ -198,6 +208,7 @@ private struct AddPRSheet: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Save") {
                         store.addPRRecord(
+                            exerciseID: selectedExerciseID,
                             name: name,
                             weight: Double(weight) ?? 0,
                             date: date,
@@ -292,6 +303,7 @@ private struct PRExercisePickerSheet: View {
                                     ) {
                                         onSelect(
                                             PRExerciseSelection(
+                                                exerciseID: exercise.id,
                                                 name: exercise.name,
                                                 suggestedWeight: store.lastPerformance(for: exercise.id)?.weight
                                             )
@@ -314,7 +326,7 @@ private struct PRExercisePickerSheet: View {
                                         title: template.name,
                                         subtitle: template.category.rawValue
                                     ) {
-                                        onSelect(PRExerciseSelection(name: template.name, suggestedWeight: nil))
+                                        onSelect(PRExerciseSelection(exerciseID: nil, name: template.name, suggestedWeight: nil))
                                         dismiss()
                                     }
                                 }
@@ -394,6 +406,7 @@ private struct PRExerciseChoiceRow: View {
 }
 
 private struct PRExerciseSelection {
+    let exerciseID: UUID?
     let name: String
     let suggestedWeight: Double?
 }

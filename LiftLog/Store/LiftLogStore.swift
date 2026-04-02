@@ -261,9 +261,10 @@ final class LiftLogStore: ObservableObject {
         persist()
     }
 
-    func addPRRecord(name: String, weight: Double, date: Date, notes: String) {
+    func addPRRecord(exerciseID: UUID? = nil, name: String, weight: Double, date: Date, notes: String) {
         let record = PRRecord(
             id: UUID(),
+            exerciseID: exerciseID,
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
             weight: max(0, weight),
             date: date,
@@ -421,7 +422,10 @@ final class LiftLogStore: ObservableObject {
             }) else { continue }
 
             guard let recordIndex = prRecords.firstIndex(where: {
-                $0.name.caseInsensitiveCompare(log.exerciseName) == .orderedSame
+                if let exerciseID = $0.exerciseID {
+                    return exerciseID == log.exerciseID
+                }
+                return $0.name.caseInsensitiveCompare(log.exerciseName) == .orderedSame
             }) else { continue }
 
             if bestSet.weight > prRecords[recordIndex].weight {

@@ -179,6 +179,7 @@ struct PersonalRecord: Hashable {
 
 struct PRRecord: Identifiable, Codable, Hashable {
     var id: UUID
+    var exerciseID: UUID?
     var name: String
     var weight: Double
     var date: Date
@@ -188,6 +189,7 @@ struct PRRecord: Identifiable, Codable, Hashable {
 
     enum CodingKeys: String, CodingKey {
         case id
+        case exerciseID
         case name
         case weight
         case date
@@ -196,8 +198,9 @@ struct PRRecord: Identifiable, Codable, Hashable {
         case updatedAt
     }
 
-    init(id: UUID, name: String, weight: Double, date: Date, notes: String, createdAt: Date? = nil, updatedAt: Date? = nil) {
+    init(id: UUID, exerciseID: UUID? = nil, name: String, weight: Double, date: Date, notes: String, createdAt: Date? = nil, updatedAt: Date? = nil) {
         self.id = id
+        self.exerciseID = exerciseID
         self.name = name
         self.weight = weight
         self.date = date
@@ -209,6 +212,7 @@ struct PRRecord: Identifiable, Codable, Hashable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
+        exerciseID = try container.decodeIfPresent(UUID.self, forKey: .exerciseID)
         name = try container.decode(String.self, forKey: .name)
         weight = try container.decode(Double.self, forKey: .weight)
         date = try container.decode(Date.self, forKey: .date)
