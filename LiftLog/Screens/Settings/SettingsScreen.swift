@@ -14,6 +14,27 @@ struct SettingsScreen: View {
             }
 
             AppCard {
+                Text("PR Sync")
+                    .font(.headline)
+                Text("When this is on, finishing a workout can update an existing PR if a logged set beats that PR weight.")
+                    .font(.subheadline)
+                    .foregroundStyle(AppTheme.textSecondary)
+
+                Toggle(isOn: Binding(
+                    get: { store.syncPRsWithWorkoutsEnabled },
+                    set: { store.setSyncPRsWithWorkouts($0) }
+                )) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Sync PRs with workouts")
+                        Text("Off by default so manual PR tracking stays separate unless you want automatic updates.")
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.textSecondary)
+                    }
+                }
+                .tint(AppTheme.accent)
+            }
+
+            AppCard {
                 Text("Sample Data")
                     .font(.headline)
                 Text("Reset the app back to starter exercises and example workouts for testing.")

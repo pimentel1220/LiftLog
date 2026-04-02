@@ -12,6 +12,8 @@ struct ActiveWorkoutScreen: View {
                 WorkoutSummaryCard(
                     startedAt: workout.startedAt,
                     exerciseCount: workout.exerciseLogs.count,
+                    lastSavedAt: store.lastSavedAt,
+                    hasSaveError: store.hasSaveError,
                     notes: Binding(
                         get: { store.activeWorkout?.notes ?? "" },
                         set: { store.updateActiveWorkoutNotes($0) }
@@ -64,6 +66,8 @@ struct ActiveWorkoutScreen: View {
 private struct WorkoutSummaryCard: View {
     let startedAt: Date
     let exerciseCount: Int
+    let lastSavedAt: Date?
+    let hasSaveError: Bool
     @Binding var notes: String
     @Binding var isShowingNotes: Bool
 
@@ -98,10 +102,24 @@ private struct WorkoutSummaryCard: View {
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
 
-            Text("Changes save automatically while you log. Tap Finish when you're done to move this workout into History.")
-                .font(.caption)
-                .foregroundStyle(AppTheme.textSecondary)
+            HStack(spacing: 8) {
+                Image(systemName: hasSaveError ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                    .foregroundStyle(hasSaveError ? .yellow : AppTheme.accent)
+                Text(saveMessage)
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.textSecondary)
+            }
         }
+    }
+
+    private var saveMessage: String {
+        if hasSaveError {
+            return "We could not confirm the last save. Keep the app open and try again before finishing."
+        }
+        if let lastSavedAt {
+            return "Saved on this iPhone at \(AppFormat.shortTime(lastSavedAt)). Tap Finish when you're done to move this workout into History."
+        }
+        return "Changes save automatically while you log. Tap Finish when you're done to move this workout into History."
     }
 }
 

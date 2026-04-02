@@ -25,6 +25,10 @@ enum AppTier: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+struct AppPreferences: Codable, Hashable {
+    var syncPRsWithWorkouts = false
+}
+
 struct ExerciseDefinition: Identifiable, Codable, Hashable {
     var id: UUID
     var name: String
@@ -32,6 +36,38 @@ struct ExerciseDefinition: Identifiable, Codable, Hashable {
     var notes: String
     var isFavorite: Bool
     var createdAt: Date
+    var updatedAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case category
+        case notes
+        case isFavorite
+        case createdAt
+        case updatedAt
+    }
+
+    init(id: UUID, name: String, category: ExerciseCategory, notes: String, isFavorite: Bool, createdAt: Date, updatedAt: Date? = nil) {
+        self.id = id
+        self.name = name
+        self.category = category
+        self.notes = notes
+        self.isFavorite = isFavorite
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt ?? createdAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        category = try container.decode(ExerciseCategory.self, forKey: .category)
+        notes = try container.decode(String.self, forKey: .notes)
+        isFavorite = try container.decode(Bool.self, forKey: .isFavorite)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
+    }
 }
 
 struct ExerciseSet: Identifiable, Codable, Hashable {
@@ -57,6 +93,35 @@ struct Workout: Identifiable, Codable, Hashable {
     var endedAt: Date
     var exerciseLogs: [WorkoutExerciseLog]
     var notes: String
+    var updatedAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case startedAt
+        case endedAt
+        case exerciseLogs
+        case notes
+        case updatedAt
+    }
+
+    init(id: UUID, startedAt: Date, endedAt: Date, exerciseLogs: [WorkoutExerciseLog], notes: String, updatedAt: Date? = nil) {
+        self.id = id
+        self.startedAt = startedAt
+        self.endedAt = endedAt
+        self.exerciseLogs = exerciseLogs
+        self.notes = notes
+        self.updatedAt = updatedAt ?? endedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        startedAt = try container.decode(Date.self, forKey: .startedAt)
+        endedAt = try container.decode(Date.self, forKey: .endedAt)
+        exerciseLogs = try container.decode([WorkoutExerciseLog].self, forKey: .exerciseLogs)
+        notes = try container.decode(String.self, forKey: .notes)
+        updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? endedAt
+    }
 }
 
 struct WorkoutDraft: Identifiable, Codable, Hashable {
@@ -64,6 +129,32 @@ struct WorkoutDraft: Identifiable, Codable, Hashable {
     var startedAt: Date
     var exerciseLogs: [WorkoutExerciseLog]
     var notes: String
+    var updatedAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case startedAt
+        case exerciseLogs
+        case notes
+        case updatedAt
+    }
+
+    init(id: UUID, startedAt: Date, exerciseLogs: [WorkoutExerciseLog], notes: String, updatedAt: Date? = nil) {
+        self.id = id
+        self.startedAt = startedAt
+        self.exerciseLogs = exerciseLogs
+        self.notes = notes
+        self.updatedAt = updatedAt ?? startedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        startedAt = try container.decode(Date.self, forKey: .startedAt)
+        exerciseLogs = try container.decode([WorkoutExerciseLog].self, forKey: .exerciseLogs)
+        notes = try container.decode(String.self, forKey: .notes)
+        updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? startedAt
+    }
 }
 
 struct LastPerformance: Hashable {
@@ -92,6 +183,39 @@ struct PRRecord: Identifiable, Codable, Hashable {
     var weight: Double
     var date: Date
     var notes: String
+    var createdAt: Date
+    var updatedAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case weight
+        case date
+        case notes
+        case createdAt
+        case updatedAt
+    }
+
+    init(id: UUID, name: String, weight: Double, date: Date, notes: String, createdAt: Date? = nil, updatedAt: Date? = nil) {
+        self.id = id
+        self.name = name
+        self.weight = weight
+        self.date = date
+        self.notes = notes
+        self.createdAt = createdAt ?? date
+        self.updatedAt = updatedAt ?? date
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        weight = try container.decode(Double.self, forKey: .weight)
+        date = try container.decode(Date.self, forKey: .date)
+        notes = try container.decode(String.self, forKey: .notes)
+        createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? date
+        updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? date
+    }
 }
 
 struct ExerciseStat: Identifiable, Hashable {
@@ -113,11 +237,15 @@ struct ExerciseTemplate: Identifiable, Hashable {
 }
 
 struct PersistedAppState: Codable {
+    static let currentSchemaVersion = 2
+
     var exercises: [ExerciseDefinition]
     var workouts: [Workout]
     var activeWorkout: WorkoutDraft?
     var prRecords: [PRRecord]
     var tier: AppTier
+    var preferences: AppPreferences
+    var schemaVersion: Int
 
     enum CodingKeys: String, CodingKey {
         case exercises
@@ -125,14 +253,18 @@ struct PersistedAppState: Codable {
         case activeWorkout
         case prRecords
         case tier
+        case preferences
+        case schemaVersion
     }
 
-    init(exercises: [ExerciseDefinition], workouts: [Workout], activeWorkout: WorkoutDraft?, prRecords: [PRRecord], tier: AppTier) {
+    init(exercises: [ExerciseDefinition], workouts: [Workout], activeWorkout: WorkoutDraft?, prRecords: [PRRecord], tier: AppTier, preferences: AppPreferences = AppPreferences(), schemaVersion: Int = PersistedAppState.currentSchemaVersion) {
         self.exercises = exercises
         self.workouts = workouts
         self.activeWorkout = activeWorkout
         self.prRecords = prRecords
         self.tier = tier
+        self.preferences = preferences
+        self.schemaVersion = schemaVersion
     }
 
     init(from decoder: Decoder) throws {
@@ -142,6 +274,8 @@ struct PersistedAppState: Codable {
         activeWorkout = try container.decodeIfPresent(WorkoutDraft.self, forKey: .activeWorkout)
         prRecords = try container.decodeIfPresent([PRRecord].self, forKey: .prRecords) ?? []
         tier = try container.decodeIfPresent(AppTier.self, forKey: .tier) ?? .free
+        preferences = try container.decodeIfPresent(AppPreferences.self, forKey: .preferences) ?? AppPreferences()
+        schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 1
     }
 
     static let empty = PersistedAppState(exercises: [], workouts: [], activeWorkout: nil, prRecords: [], tier: .free)

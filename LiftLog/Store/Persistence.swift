@@ -13,9 +13,15 @@ struct PersistenceController {
         return try? JSONDecoder.liftLog.decode(PersistedAppState.self, from: data)
     }
 
-    func save(_ state: PersistedAppState) {
-        guard let data = try? JSONEncoder.liftLog.encode(state) else { return }
-        try? data.write(to: fileURL, options: [.atomic])
+    @discardableResult
+    func save(_ state: PersistedAppState) -> Bool {
+        guard let data = try? JSONEncoder.liftLog.encode(state) else { return false }
+        do {
+            try data.write(to: fileURL, options: [.atomic])
+            return true
+        } catch {
+            return false
+        }
     }
 }
 

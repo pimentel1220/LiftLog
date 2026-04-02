@@ -6,6 +6,9 @@ final class LiftLogStore: ObservableObject {
     @Published private(set) var workouts: [Workout] = []
     @Published private(set) var activeWorkout: WorkoutDraft?
     @Published private(set) var prRecords: [PRRecord] = []
+    @Published private(set) var lastSavedAt: Date?
+    @Published private(set) var hasSaveError = false
+    @Published private(set) var preferences = AppPreferences()
     @Published var tier: AppTier = .free
 
     private let persistence = PersistenceController()
@@ -64,6 +67,10 @@ final class LiftLogStore: ObservableObject {
         }
     }
 
+    var syncPRsWithWorkoutsEnabled: Bool {
+        preferences.syncPRsWithWorkouts
+    }
+
     func startWorkout(copyLastWorkout: Bool = false) {
         if copyLastWorkout, let lastWorkout = recentWorkouts.first {
             let draftLogs = lastWorkout.exerciseLogs.map { log in
@@ -96,16 +103,20 @@ final class LiftLogStore: ObservableObject {
             startedAt: draft.startedAt,
             endedAt: Date(),
             exerciseLogs: draft.exerciseLogs,
-            notes: draft.notes
+            notes: draft.notes,
+            updatedAt: Date()
         )
         workouts.append(workout)
+        if preferences.syncPRsWithWorkouts {
+            syncPRsFromWorkout(workout)
+        }
         activeWorkout = nil
         persist()
     }
 
     func addExerciseToActiveWorkout(exercise: ExerciseDefinition) {
-        guard activeWorkout != nil else { return }
-        if activeWorkout?.exerciseLogs.contains(where: { $0.exerciseID == exercise.id }) == true {
+        guard var draft = activeWorkout else { return }
+        if draft.exerciseLogs.contains(where: { $0.exerciseID == exercise.id }) {
             return
         }
 
@@ -122,7 +133,9 @@ final class LiftLogStore: ObservableObject {
             sets: [defaultSet]
         )
 
-        activeWorkout?.exerciseLogs.append(log)
+        draft.exerciseLogs.append(log)
+        draft.updatedAt = Date()
+        activeWorkout = draft
         persist()
     }
 
@@ -138,7 +151,8 @@ final class LiftLogStore: ObservableObject {
             category: category,
             notes: notes,
             isFavorite: favorite,
-            createdAt: Date()
+            createdAt: Date(),
+            updatedAt: Date()
         )
         exercises.append(exercise)
         exercises.sort { $0.name < $1.name }
@@ -167,17 +181,13 @@ final class LiftLogStore: ObservableObject {
     func updateExerciseNotes(exerciseID: UUID, notes: String) {
         guard let index = exercises.firstIndex(where: { $0.id == exerciseID }) else { return }
         exercises[index].notes = notes
-
-        for workoutIndex in workouts.indices {
-            for logIndex in workouts[workoutIndex].exerciseLogs.indices where workouts[workoutIndex].exerciseLogs[logIndex].exerciseID == exerciseID {
-                workouts[workoutIndex].exerciseLogs[logIndex].notes = notes
-            }
-        }
+        exercises[index].updatedAt = Date()
 
         if var draft = activeWorkout {
             for logIndex in draft.exerciseLogs.indices where draft.exerciseLogs[logIndex].exerciseID == exerciseID {
                 draft.exerciseLogs[logIndex].notes = notes
             }
+            draft.updatedAt = Date()
             activeWorkout = draft
         }
 
@@ -187,6 +197,7 @@ final class LiftLogStore: ObservableObject {
     func toggleFavorite(exerciseID: UUID) {
         guard let index = exercises.firstIndex(where: { $0.id == exerciseID }) else { return }
         exercises[index].isFavorite.toggle()
+        exercises[index].updatedAt = Date()
         persist()
     }
 
@@ -217,7 +228,10 @@ final class LiftLogStore: ObservableObject {
     }
 
     func deleteExerciseFromActiveWorkout(logID: UUID) {
-        activeWorkout?.exerciseLogs.removeAll { $0.id == logID }
+        guard var draft = activeWorkout else { return }
+        draft.exerciseLogs.removeAll { $0.id == logID }
+        draft.updatedAt = Date()
+        activeWorkout = draft
         persist()
     }
 
@@ -240,7 +254,10 @@ final class LiftLogStore: ObservableObject {
     }
 
     func updateActiveWorkoutNotes(_ notes: String) {
-        activeWorkout?.notes = notes
+        guard var draft = activeWorkout else { return }
+        draft.notes = notes
+        draft.updatedAt = Date()
+        activeWorkout = draft
         persist()
     }
 
@@ -250,9 +267,16 @@ final class LiftLogStore: ObservableObject {
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
             weight: max(0, weight),
             date: date,
-            notes: notes.trimmingCharacters(in: .whitespacesAndNewlines)
+            notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
+            createdAt: Date(),
+            updatedAt: Date()
         )
         prRecords.append(record)
+        persist()
+    }
+
+    func setSyncPRsWithWorkouts(_ isEnabled: Bool) {
+        preferences.syncPRsWithWorkouts = isEnabled
         persist()
     }
 
@@ -335,6 +359,7 @@ final class LiftLogStore: ObservableObject {
         workouts = state.workouts
         activeWorkout = state.activeWorkout
         prRecords = state.prRecords
+        preferences = state.preferences
         tier = state.tier
         persist()
     }
@@ -345,6 +370,7 @@ final class LiftLogStore: ObservableObject {
         workouts = state.workouts
         activeWorkout = state.activeWorkout
         prRecords = state.prRecords
+        preferences = state.preferences
         tier = state.tier
         persist()
     }
@@ -353,6 +379,7 @@ final class LiftLogStore: ObservableObject {
         guard var draft = activeWorkout,
               let index = draft.exerciseLogs.firstIndex(where: { $0.id == logID }) else { return }
         change(&draft.exerciseLogs[index])
+        draft.updatedAt = Date()
         activeWorkout = draft
         persist()
     }
@@ -362,19 +389,46 @@ final class LiftLogStore: ObservableObject {
               let logIndex = draft.exerciseLogs.firstIndex(where: { $0.id == logID }),
               let setIndex = draft.exerciseLogs[logIndex].sets.firstIndex(where: { $0.id == setID }) else { return }
         change(&draft.exerciseLogs[logIndex].sets[setIndex])
+        draft.updatedAt = Date()
         activeWorkout = draft
         persist()
     }
 
     private func persist() {
-        persistence.save(
+        let didSave = persistence.save(
             PersistedAppState(
                 exercises: exercises,
                 workouts: workouts,
                 activeWorkout: activeWorkout,
                 prRecords: prRecords,
-                tier: tier
+                tier: tier,
+                preferences: preferences
             )
         )
+        hasSaveError = !didSave
+        if didSave {
+            lastSavedAt = Date()
+        }
+    }
+
+    private func syncPRsFromWorkout(_ workout: Workout) {
+        for log in workout.exerciseLogs {
+            guard let bestSet = log.sets.max(by: { lhs, rhs in
+                if lhs.weight == rhs.weight {
+                    return lhs.reps < rhs.reps
+                }
+                return lhs.weight < rhs.weight
+            }) else { continue }
+
+            guard let recordIndex = prRecords.firstIndex(where: {
+                $0.name.caseInsensitiveCompare(log.exerciseName) == .orderedSame
+            }) else { continue }
+
+            if bestSet.weight > prRecords[recordIndex].weight {
+                prRecords[recordIndex].weight = bestSet.weight
+                prRecords[recordIndex].date = workout.startedAt
+                prRecords[recordIndex].updatedAt = Date()
+            }
+        }
     }
 }
