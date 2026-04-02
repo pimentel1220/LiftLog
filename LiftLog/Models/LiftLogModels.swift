@@ -95,13 +95,14 @@ struct PRRecord: Identifiable, Codable, Hashable {
 }
 
 struct ExerciseStat: Identifiable, Hashable {
-    let id = UUID()
     let exerciseID: UUID
     let name: String
     let maxWeight: Double
     let totalReps: Int
     let recentWeight: Double
     let personalRecord: PersonalRecord
+
+    var id: UUID { exerciseID }
 }
 
 struct ExerciseTemplate: Identifiable, Hashable {

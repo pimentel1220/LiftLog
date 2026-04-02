@@ -409,22 +409,37 @@ private struct AddExerciseSheet: View {
         return base.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
     }
 
+    private var activeExerciseIDs: Set<UUID> {
+        Set(store.activeWorkout?.exerciseLogs.map(\.exerciseID) ?? [])
+    }
+
     private var savedExercises: [ExerciseDefinition] {
-        let base = store.exercises(for: selectedCategory)
+        let base = store.exercises(for: selectedCategory).filter { !activeExerciseIDs.contains($0.id) }
         guard !searchText.isEmpty else { return base }
         return base.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
     }
 
     private var favoriteExercises: [ExerciseDefinition] {
-        let filtered = store.favoriteExercises.filter { $0.category == selectedCategory }
+        let filtered = store.favoriteExercises.filter {
+            $0.category == selectedCategory && !activeExerciseIDs.contains($0.id)
+        }
         guard !searchText.isEmpty else { return filtered }
         return filtered.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
     }
 
     private var recentExercises: [ExerciseDefinition] {
-        let filtered = store.recentExercises(for: selectedCategory)
+        let filtered = store.recentExercises(for: selectedCategory).filter { !activeExerciseIDs.contains($0.id) }
         guard !searchText.isEmpty else { return filtered }
         return filtered.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+    }
+
+    private var availableTemplates: [ExerciseTemplate] {
+        templates.filter { template in
+            if let existing = store.findExercise(named: template.name, category: template.category) {
+                return !activeExerciseIDs.contains(existing.id)
+            }
+            return true
+        }
     }
 
     private var savedExerciseRemainder: [ExerciseDefinition] {
@@ -433,7 +448,7 @@ private struct AddExerciseSheet: View {
     }
 
     private var hasResults: Bool {
-        !favoriteExercises.isEmpty || !recentExercises.isEmpty || !savedExerciseRemainder.isEmpty || !templates.isEmpty
+        !favoriteExercises.isEmpty || !recentExercises.isEmpty || !savedExerciseRemainder.isEmpty || !availableTemplates.isEmpty
     }
 
     var body: some View {
@@ -507,12 +522,12 @@ private struct AddExerciseSheet: View {
                         }
                     }
 
-                    if !templates.isEmpty {
+                    if !availableTemplates.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
                             Text(selectedCategory == .machines ? "Quick Picks" : "Popular Choices")
                                 .font(.headline)
                             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                                ForEach(templates) { template in
+                                ForEach(availableTemplates) { template in
                                     ExerciseTemplateTile(template: template, subtitle: template.starterNotes) {
                                         let exercise = store.ensureExercise(from: template)
                                         store.addExerciseToActiveWorkout(exercise: exercise)
@@ -525,9 +540,9 @@ private struct AddExerciseSheet: View {
 
                     if !hasResults {
                         EmptyStateCard(
-                            title: "No matches yet",
-                            subtitle: "Try a different search or create a custom exercise below.",
-                            systemImage: "magnifyingglass"
+                            title: "Everything here is already in this workout",
+                            subtitle: "Try another category, search for a different exercise, or create a custom one below.",
+                            systemImage: "checkmark.circle"
                         )
                     }
 
