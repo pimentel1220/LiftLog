@@ -8,15 +8,32 @@ struct HomeScreen: View {
             AppCard {
                 Text("A simple gym tracker that helps you remember exactly what you lifted last time.")
                     .font(.headline)
-                PrimaryActionButton(title: "Start Workout", systemImage: "play.fill") {
-                    store.startWorkout()
-                }
+
                 if store.hasActiveWorkout {
-                    SecondaryActionButton(title: "Continue Last Workout", systemImage: "arrow.clockwise") {
+                    HStack(spacing: 12) {
+                        Image(systemName: "figure.strengthtraining.traditional")
+                            .foregroundStyle(AppTheme.accent)
+                            .font(.title2)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Workout in progress")
+                                .font(.headline)
+                            Text("Jump back in and keep logging.")
+                                .font(.subheadline)
+                                .foregroundStyle(AppTheme.textSecondary)
+                        }
+                        Spacer()
                     }
+                    Text("Your workout is already open. Jump back in and keep logging.")
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.textSecondary)
                 } else {
-                    SecondaryActionButton(title: "Duplicate Last Workout", systemImage: "square.on.square") {
-                        store.startWorkout(copyLastWorkout: true)
+                    PrimaryActionButton(title: "Start Workout", systemImage: "play.fill") {
+                        store.startWorkout()
+                    }
+                    if store.recentWorkouts.first != nil {
+                        SecondaryActionButton(title: "Duplicate Last Workout", systemImage: "square.on.square") {
+                            store.startWorkout(copyLastWorkout: true)
+                        }
                     }
                 }
             }
@@ -31,10 +48,13 @@ struct HomeScreen: View {
                         .font(.subheadline)
                     ForEach(recentWorkout.exerciseLogs.prefix(3)) { log in
                         HStack {
-                            Text(log.exerciseName)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(log.exerciseName)
+                                Text(log.sets.last.map { "\($0.weight == 0 ? "Bodyweight" : AppFormat.weight($0.weight)) x \($0.reps)" } ?? "No sets")
+                                    .font(.caption)
+                                    .foregroundStyle(AppTheme.textSecondary)
+                            }
                             Spacer()
-                            Text(log.sets.last.map { "\($0.reps) reps" } ?? "")
-                                .foregroundStyle(AppTheme.textSecondary)
                         }
                         .font(.subheadline)
                     }
@@ -74,13 +94,45 @@ struct HomeScreen: View {
             AppCard {
                 Text("Quick Access")
                     .font(.headline)
-                NavigationLink("View History", destination: HistoryScreen())
-                    .foregroundStyle(AppTheme.accent)
-                NavigationLink("View Exercises", destination: ExercisesScreen())
-                    .foregroundStyle(AppTheme.accent)
-                NavigationLink("View Progress", destination: ProgressScreen())
-                    .foregroundStyle(AppTheme.accent)
+                NavigationLink {
+                    ExercisesScreen()
+                } label: {
+                    HomeShortcutRow(title: "Exercises", subtitle: "See saved lifts and last used weight")
+                }
+
+                NavigationLink {
+                    HistoryScreen()
+                } label: {
+                    HomeShortcutRow(title: "History", subtitle: "Review past workouts by date")
+                }
+
+                NavigationLink {
+                    ProgressScreen()
+                } label: {
+                    HomeShortcutRow(title: "Progress", subtitle: "Check personal bests and trends")
+                }
             }
         }
+    }
+}
+
+private struct HomeShortcutRow: View {
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .foregroundStyle(.white)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.textSecondary)
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .foregroundStyle(AppTheme.textSecondary)
+        }
+        .padding(.vertical, 2)
     }
 }

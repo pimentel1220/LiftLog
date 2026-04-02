@@ -4,23 +4,20 @@ struct ActiveWorkoutScreen: View {
     @EnvironmentObject private var store: LiftLogStore
     @Environment(\.dismiss) private var dismiss
     @State private var isShowingAddExercise = false
+    @State private var isShowingNotes = false
 
     var body: some View {
         AppScreen(title: "Workout") {
             if let workout = store.activeWorkout {
-                AppCard {
-                    Text("Started \(AppFormat.shortTime(workout.startedAt))")
-                        .font(.subheadline)
-                        .foregroundStyle(AppTheme.textSecondary)
-                    TextField("Workout notes", text: Binding(
+                WorkoutSummaryCard(
+                    startedAt: workout.startedAt,
+                    exerciseCount: workout.exerciseLogs.count,
+                    notes: Binding(
                         get: { store.activeWorkout?.notes ?? "" },
                         set: { store.updateActiveWorkoutNotes($0) }
-                    ), axis: .vertical)
-                    .textFieldStyle(.plain)
-                    .padding(12)
-                    .background(AppTheme.cardSecondary)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                }
+                    ),
+                    isShowingNotes: $isShowingNotes
+                )
 
                 PrimaryActionButton(title: "Add Exercise", systemImage: "plus") {
                     isShowingAddExercise = true
@@ -60,6 +57,46 @@ struct ActiveWorkoutScreen: View {
     }
 }
 
+private struct WorkoutSummaryCard: View {
+    let startedAt: Date
+    let exerciseCount: Int
+    @Binding var notes: String
+    @Binding var isShowingNotes: Bool
+
+    var body: some View {
+        AppCard {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Started \(AppFormat.shortTime(startedAt))")
+                        .font(.headline)
+                    Text(exerciseCount == 0 ? "No exercises yet" : "\(exerciseCount) exercise\(exerciseCount == 1 ? "" : "s") in this workout")
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+
+                Spacer()
+
+                Button(isShowingNotes ? "Hide Notes" : "Notes") {
+                    isShowingNotes.toggle()
+                }
+                .font(.caption.weight(.semibold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(AppTheme.cardSecondary)
+                .clipShape(Capsule())
+            }
+
+            if isShowingNotes {
+                TextField("Optional workout notes", text: $notes, axis: .vertical)
+                    .textFieldStyle(.plain)
+                    .padding(12)
+                    .background(AppTheme.cardSecondary)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+        }
+    }
+}
+
 private struct ActiveExerciseCard: View {
     @EnvironmentObject private var store: LiftLogStore
     let log: WorkoutExerciseLog
@@ -69,7 +106,7 @@ private struct ActiveExerciseCard: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(log.exerciseName)
-                        .font(.headline)
+                        .font(.title3.weight(.bold))
                     CategoryPill(category: log.category)
                 }
                 Spacer()
@@ -85,20 +122,26 @@ private struct ActiveExerciseCard: View {
 
             if !log.notes.isEmpty {
                 Text(log.notes)
-                    .font(.subheadline)
+                    .font(.footnote)
                     .foregroundStyle(AppTheme.textSecondary)
             }
 
-            ForEach(log.sets) { set in
-                SetEditorRow(logID: log.id, set: set)
+            VStack(spacing: 10) {
+                ForEach(Array(log.sets.enumerated()), id: \.element.id) { index, set in
+                    SetEditorRow(
+                        logID: log.id,
+                        setNumber: index + 1,
+                        set: set
+                    )
+                }
             }
 
             HStack(spacing: 10) {
-                SecondaryActionButton(title: "Repeat Last Set", systemImage: "arrow.triangle.2.circlepath") {
+                WorkoutQuickActionButton(title: "Repeat Last Set", systemImage: "arrow.triangle.2.circlepath") {
                     store.repeatPreviousSet(for: log.id)
                 }
-                SecondaryActionButton(title: "Add Set", systemImage: "plus") {
-                    store.addSet(to: log.id)
+                WorkoutQuickActionButton(title: "Add Blank Set", systemImage: "plus") {
+                    store.addEmptySet(to: log.id)
                 }
             }
         }
@@ -108,22 +151,13 @@ private struct ActiveExerciseCard: View {
 private struct SetEditorRow: View {
     @EnvironmentObject private var store: LiftLogStore
     let logID: UUID
+    let setNumber: Int
     let set: ExerciseSet
 
     var body: some View {
-        VStack(spacing: 12) {
-            weightSection
-            repsSection
-        }
-        .padding(14)
-        .background(AppTheme.cardSecondary)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-    }
-
-    private var weightSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Weight")
+                Text("Set \(setNumber)")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(AppTheme.textSecondary)
                 Spacer()
@@ -136,33 +170,26 @@ private struct SetEditorRow: View {
             }
 
             HStack(spacing: 12) {
-                LargeAdjustButton(systemImage: "minus", tint: .white.opacity(0.12)) {
-                    store.updateSetWeight(logID: logID, setID: set.id, delta: -5)
-                }
+                CompactMetricEditor(
+                    title: "Weight",
+                    value: set.weight == 0 ? "Body" : AppFormat.editableWeight(set.weight),
+                    subtitle: set.weight == 0 ? "bodyweight" : "lb",
+                    decrement: { store.updateSetWeight(logID: logID, setID: set.id, delta: -5) },
+                    increment: { store.updateSetWeight(logID: logID, setID: set.id, delta: 5) }
+                )
 
-                VStack(spacing: 4) {
-                    Text(set.weight == 0 ? "Bodyweight" : "\(set.weight.formatted(.number.precision(.fractionLength(0...1))))")
-                        .font(.system(size: 30, weight: .bold, design: .rounded))
-                    Text(set.weight == 0 ? "No added weight" : "lb")
-                        .font(.caption)
-                        .foregroundStyle(AppTheme.textSecondary)
-                }
-                .frame(maxWidth: .infinity)
-
-                LargeAdjustButton(systemImage: "plus", tint: AppTheme.accent, foreground: .black) {
-                    store.updateSetWeight(logID: logID, setID: set.id, delta: 5)
-                }
+                CompactMetricEditor(
+                    title: "Reps",
+                    value: "\(set.reps)",
+                    subtitle: "target",
+                    decrement: { store.updateSetReps(logID: logID, setID: set.id, delta: -1) },
+                    increment: { store.updateSetReps(logID: logID, setID: set.id, delta: 1) }
+                )
             }
 
             HStack(spacing: 8) {
                 QuickValueChip(label: "Body", isActive: set.weight == 0) {
                     store.updateSetWeight(logID: logID, setID: set.id, delta: -set.weight)
-                }
-                QuickValueChip(label: "-2.5") {
-                    store.updateSetWeight(logID: logID, setID: set.id, delta: -2.5)
-                }
-                QuickValueChip(label: "+2.5") {
-                    store.updateSetWeight(logID: logID, setID: set.id, delta: 2.5)
                 }
                 QuickValueChip(label: "+5") {
                     store.updateSetWeight(logID: logID, setID: set.id, delta: 5)
@@ -170,48 +197,53 @@ private struct SetEditorRow: View {
                 QuickValueChip(label: "+10") {
                     store.updateSetWeight(logID: logID, setID: set.id, delta: 10)
                 }
+                QuickValueChip(label: "8 reps") {
+                    store.updateSetReps(logID: logID, setID: set.id, to: 8)
+                }
+                QuickValueChip(label: "12 reps") {
+                    store.updateSetReps(logID: logID, setID: set.id, to: 12)
+                }
             }
         }
+        .padding(14)
+        .background(AppTheme.cardSecondary)
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
+}
 
-    private var repsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Reps")
+private struct CompactMetricEditor: View {
+    let title: String
+    let value: String
+    let subtitle: String
+    let decrement: () -> Void
+    let increment: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(AppTheme.textSecondary)
 
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 LargeAdjustButton(systemImage: "minus", tint: .white.opacity(0.12)) {
-                    store.updateSetReps(logID: logID, setID: set.id, delta: -1)
+                    decrement()
                 }
 
-                Text("\(set.reps)")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .frame(maxWidth: .infinity)
+                VStack(spacing: 2) {
+                    Text(value)
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                    Text(subtitle)
+                        .font(.caption2)
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+                .frame(maxWidth: .infinity)
 
                 LargeAdjustButton(systemImage: "plus", tint: AppTheme.accent, foreground: .black) {
-                    store.updateSetReps(logID: logID, setID: set.id, delta: 1)
-                }
-            }
-
-            HStack(spacing: 8) {
-                QuickValueChip(label: "6") {
-                    store.updateSetReps(logID: logID, setID: set.id, to: 6)
-                }
-                QuickValueChip(label: "8") {
-                    store.updateSetReps(logID: logID, setID: set.id, to: 8)
-                }
-                QuickValueChip(label: "10") {
-                    store.updateSetReps(logID: logID, setID: set.id, to: 10)
-                }
-                QuickValueChip(label: "12") {
-                    store.updateSetReps(logID: logID, setID: set.id, to: 12)
-                }
-                QuickValueChip(label: "15") {
-                    store.updateSetReps(logID: logID, setID: set.id, to: 15)
+                    increment()
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -224,11 +256,11 @@ private struct LargeAdjustButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: systemImage)
-                .font(.title2.weight(.bold))
-                .frame(width: 52, height: 52)
+                .font(.title3.weight(.bold))
+                .frame(width: 44, height: 44)
                 .background(tint)
                 .foregroundStyle(foreground)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .buttonStyle(.plain)
     }
@@ -249,6 +281,29 @@ private struct QuickValueChip: View {
                 .background(isActive ? AppTheme.accent : AppTheme.accentMuted)
                 .foregroundStyle(isActive ? .black : AppTheme.accent)
                 .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct WorkoutQuickActionButton: View {
+    let title: String
+    let systemImage: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                Image(systemName: systemImage)
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 13)
+            .frame(maxWidth: .infinity)
+            .background(AppTheme.cardSecondary)
+            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
         .buttonStyle(.plain)
     }
@@ -295,7 +350,7 @@ private struct ExerciseTemplateTile: View {
                     .lineLimit(2)
             }
             .padding(14)
-            .frame(maxWidth: .infinity, minHeight: 118, alignment: .topLeading)
+            .frame(maxWidth: .infinity, minHeight: 110, alignment: .topLeading)
             .background(AppTheme.card)
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
@@ -345,23 +400,9 @@ private struct AddExerciseSheet: View {
                         }
                     }
 
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(selectedCategory == .machines ? "Popular Machines" : "Quick Picks")
-                            .font(.headline)
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                            ForEach(templates) { template in
-                                ExerciseTemplateTile(template: template, subtitle: template.starterNotes) {
-                                    let exercise = store.ensureExercise(from: template)
-                                    store.addExerciseToActiveWorkout(exercise: exercise)
-                                    dismiss()
-                                }
-                            }
-                        }
-                    }
-
                     if !savedExercises.isEmpty {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Your Saved \(selectedCategory.rawValue)")
+                            Text("Your \(selectedCategory.rawValue)")
                                 .font(.headline)
                             ForEach(savedExercises) { exercise in
                                 Button {
@@ -386,6 +427,20 @@ private struct AddExerciseSheet: View {
                                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                                 }
                                 .buttonStyle(.plain)
+                            }
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(selectedCategory == .machines ? "Quick Picks" : "Popular Choices")
+                            .font(.headline)
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                            ForEach(templates) { template in
+                                ExerciseTemplateTile(template: template, subtitle: template.starterNotes) {
+                                    let exercise = store.ensureExercise(from: template)
+                                    store.addExerciseToActiveWorkout(exercise: exercise)
+                                    dismiss()
+                                }
                             }
                         }
                     }

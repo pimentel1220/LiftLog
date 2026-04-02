@@ -170,6 +170,12 @@ final class LiftLogStore: ObservableObject {
         }
     }
 
+    func addEmptySet(to logID: UUID) {
+        mutateLog(logID) { log in
+            log.sets.append(ExerciseSet.empty)
+        }
+    }
+
     func repeatPreviousSet(for logID: UUID) {
         addSet(to: logID)
     }
@@ -317,15 +323,19 @@ final class LiftLogStore: ObservableObject {
     }
 
     private func mutateLog(_ logID: UUID, change: (inout WorkoutExerciseLog) -> Void) {
-        guard let index = activeWorkout?.exerciseLogs.firstIndex(where: { $0.id == logID }) else { return }
-        change(&activeWorkout!.exerciseLogs[index])
+        guard var draft = activeWorkout,
+              let index = draft.exerciseLogs.firstIndex(where: { $0.id == logID }) else { return }
+        change(&draft.exerciseLogs[index])
+        activeWorkout = draft
         persist()
     }
 
     private func mutateSet(logID: UUID, setID: UUID, change: (inout ExerciseSet) -> Void) {
-        guard let logIndex = activeWorkout?.exerciseLogs.firstIndex(where: { $0.id == logID }),
-              let setIndex = activeWorkout?.exerciseLogs[logIndex].sets.firstIndex(where: { $0.id == setID }) else { return }
-        change(&activeWorkout!.exerciseLogs[logIndex].sets[setIndex])
+        guard var draft = activeWorkout,
+              let logIndex = draft.exerciseLogs.firstIndex(where: { $0.id == logID }),
+              let setIndex = draft.exerciseLogs[logIndex].sets.firstIndex(where: { $0.id == setID }) else { return }
+        change(&draft.exerciseLogs[logIndex].sets[setIndex])
+        activeWorkout = draft
         persist()
     }
 
