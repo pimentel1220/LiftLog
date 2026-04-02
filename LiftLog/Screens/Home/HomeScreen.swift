@@ -102,9 +102,10 @@ struct HomeScreen: View {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(exercise.name)
                                         .foregroundStyle(.white)
-                                    Text(store.lastPerformanceSummary(for: exercise.id) ?? "No history yet")
+                                    Text(store.exerciseSummary(for: exercise))
                                         .font(.caption)
                                         .foregroundStyle(AppTheme.textSecondary)
+                                        .lineLimit(2)
                                 }
                                 Spacer()
                                 Image(systemName: "chevron.right")

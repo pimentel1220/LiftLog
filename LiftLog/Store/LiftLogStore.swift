@@ -396,6 +396,24 @@ final class LiftLogStore: ObservableObject {
         return formattedLastPerformance(performance)
     }
 
+    func exerciseSummary(for exercise: ExerciseDefinition) -> String {
+        let trimmedNotes = exercise.notes.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedSetupNote = trimmedNotes.isEmpty ? nil : "Setup: \(trimmedNotes)"
+
+        if let lastLift = lastPerformanceSummary(for: exercise.id) {
+            if let trimmedSetupNote {
+                return "\(lastLift)  •  \(trimmedSetupNote)"
+            }
+            return lastLift
+        }
+
+        if let trimmedSetupNote {
+            return trimmedSetupNote
+        }
+
+        return "No history yet"
+    }
+
     func exerciseStats() -> [ExerciseStat] {
         exercises.compactMap { exercise in
             let logs = history(for: exercise.id)

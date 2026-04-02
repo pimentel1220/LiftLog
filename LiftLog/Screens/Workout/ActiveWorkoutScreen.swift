@@ -155,10 +155,8 @@ private struct ActiveExerciseCard: View {
 
             LastTimeBanner(performance: store.lastPerformance(for: log.exerciseID), weightUnit: store.weightUnit)
 
-            if !log.notes.isEmpty {
-                Text(log.notes)
-                    .font(.footnote)
-                    .foregroundStyle(AppTheme.textSecondary)
+            if !log.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                SetupNoteBanner(note: log.notes)
             }
 
             VStack(spacing: 10) {
@@ -205,17 +203,11 @@ private struct SetEditorRow: View {
                 }
             }
 
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 12) {
-                    metricEditors
-                }
-
-                VStack(spacing: 12) {
-                    metricEditors
-                }
+            HStack(spacing: 12) {
+                metricEditors
             }
 
-            LazyVGrid(columns: quickChipColumns, spacing: 8) {
+            ChipFlowLayout(spacing: 8, rowSpacing: 8) {
                 QuickValueChip(label: "Body", isActive: set.weight == 0) {
                     store.updateSetWeight(logID: logID, setID: set.id, toDisplayValue: 0)
                 }
@@ -266,12 +258,6 @@ private struct SetEditorRow: View {
         }
     }
 
-    private var quickChipColumns: [GridItem] {
-        [
-            GridItem(.adaptive(minimum: 88, maximum: 140), spacing: 8)
-        ]
-    }
-
     @ViewBuilder
     private var metricEditors: some View {
         CompactMetricEditor(
@@ -309,17 +295,17 @@ private struct CompactMetricEditor: View {
                 .foregroundStyle(AppTheme.textSecondary)
 
             HStack(spacing: 10) {
-                LargeAdjustButton(systemImage: "minus", tint: .white.opacity(0.12)) {
+                LargeAdjustButton(systemImage: "minus", tint: .white.opacity(0.12), size: 40) {
                     decrement()
                 }
 
                 VStack(spacing: 2) {
                     Button(action: onTapValue) {
                         Text(value)
-                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
                             .foregroundStyle(.white)
                             .lineLimit(1)
-                            .minimumScaleFactor(0.55)
+                            .minimumScaleFactor(0.65)
                             .allowsTightening(true)
                             .frame(maxWidth: .infinity)
                     }
@@ -330,7 +316,7 @@ private struct CompactMetricEditor: View {
                 }
                 .frame(maxWidth: .infinity)
 
-                LargeAdjustButton(systemImage: "plus", tint: AppTheme.accent, foreground: .black) {
+                LargeAdjustButton(systemImage: "plus", tint: AppTheme.accent, foreground: .black, size: 40) {
                     increment()
                 }
             }
@@ -407,13 +393,14 @@ private struct LargeAdjustButton: View {
     let systemImage: String
     let tint: Color
     var foreground: Color = .white
+    var size: CGFloat = 44
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Image(systemName: systemImage)
                 .font(.title3.weight(.bold))
-                .frame(width: 44, height: 44)
+                .frame(width: size, height: size)
                 .background(tint)
                 .foregroundStyle(foreground)
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
@@ -431,12 +418,11 @@ private struct QuickValueChip: View {
         Button(action: action) {
             Text(label)
                 .font(.caption.weight(.semibold))
-                .lineLimit(2)
-                .minimumScaleFactor(0.75)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 12)
+                .padding(.horizontal, 18)
                 .padding(.vertical, 10)
-                .frame(maxWidth: .infinity)
                 .background(isActive ? AppTheme.accent : AppTheme.accentMuted)
                 .foregroundStyle(isActive ? .black : AppTheme.accent)
                 .clipShape(Capsule())
@@ -465,6 +451,87 @@ private struct WorkoutQuickActionButton: View {
             .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct SetupNoteBanner: View {
+    let note: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "slider.horizontal.3")
+                .foregroundStyle(AppTheme.accent)
+                .font(.subheadline.weight(.semibold))
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Setup note")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AppTheme.textSecondary)
+                Text(note)
+                    .font(.footnote)
+                    .foregroundStyle(.white)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+        }
+        .padding(12)
+        .background(AppTheme.cardSecondary.opacity(0.9))
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+}
+
+private struct ChipFlowLayout: Layout {
+    var spacing: CGFloat = 8
+    var rowSpacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        var currentRowWidth: CGFloat = 0
+        var currentRowHeight: CGFloat = 0
+        var totalHeight: CGFloat = 0
+        var maxRowWidth: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            let proposedWidth = currentRowWidth == 0 ? size.width : currentRowWidth + spacing + size.width
+
+            if proposedWidth > maxWidth, currentRowWidth > 0 {
+                totalHeight += currentRowHeight + rowSpacing
+                maxRowWidth = max(maxRowWidth, currentRowWidth)
+                currentRowWidth = size.width
+                currentRowHeight = size.height
+            } else {
+                currentRowWidth = proposedWidth
+                currentRowHeight = max(currentRowHeight, size.height)
+            }
+        }
+
+        totalHeight += currentRowHeight
+        maxRowWidth = max(maxRowWidth, currentRowWidth)
+
+        return CGSize(width: min(maxRowWidth, maxWidth), height: totalHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var origin = bounds.origin
+        var rowHeight: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+
+            if origin.x + size.width > bounds.maxX, origin.x > bounds.minX {
+                origin.x = bounds.minX
+                origin.y += rowHeight + rowSpacing
+                rowHeight = 0
+            }
+
+            subview.place(
+                at: origin,
+                proposal: ProposedViewSize(width: size.width, height: size.height)
+            )
+
+            origin.x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
     }
 }
 
@@ -631,7 +698,7 @@ private struct AddExerciseSheet: View {
                             ForEach(favoriteExercises) { exercise in
                                 ExercisePickerRow(
                                     title: exercise.name,
-                                    subtitle: store.lastPerformanceSummary(for: exercise.id) ?? exercise.notes
+                                    subtitle: store.exerciseSummary(for: exercise)
                                 ) {
                                     store.addExerciseToActiveWorkout(exercise: exercise)
                                     dismiss()
@@ -647,7 +714,7 @@ private struct AddExerciseSheet: View {
                             ForEach(recentExercises) { exercise in
                                 ExercisePickerRow(
                                     title: exercise.name,
-                                    subtitle: store.lastPerformanceSummary(for: exercise.id) ?? exercise.notes,
+                                    subtitle: store.exerciseSummary(for: exercise),
                                     trailingIcon: "clock.arrow.circlepath"
                                 ) {
                                     store.addExerciseToActiveWorkout(exercise: exercise)
@@ -664,7 +731,7 @@ private struct AddExerciseSheet: View {
                             ForEach(savedExerciseRemainder) { exercise in
                                 ExercisePickerRow(
                                     title: exercise.name,
-                                    subtitle: store.lastPerformanceSummary(for: exercise.id) ?? exercise.notes
+                                    subtitle: store.exerciseSummary(for: exercise)
                                 ) {
                                     store.addExerciseToActiveWorkout(exercise: exercise)
                                     dismiss()
