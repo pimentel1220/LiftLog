@@ -5,6 +5,7 @@ struct ActiveWorkoutScreen: View {
     @Environment(\.dismiss) private var dismiss
     @State private var isShowingAddExercise = false
     @State private var isShowingNotes = false
+    @State private var hasAutoPromptedFirstExercise = false
 
     var body: some View {
         AppScreen(title: "Workout") {
@@ -59,6 +60,14 @@ struct ActiveWorkoutScreen: View {
         }
         .sheet(isPresented: $isShowingAddExercise) {
             AddExerciseSheet()
+        }
+        .interactiveDismissDisabled()
+        .onAppear {
+            guard !hasAutoPromptedFirstExercise,
+                  store.recentWorkouts.isEmpty,
+                  store.activeWorkout?.exerciseLogs.isEmpty == true else { return }
+            hasAutoPromptedFirstExercise = true
+            isShowingAddExercise = true
         }
     }
 }
@@ -117,9 +126,9 @@ private struct WorkoutSummaryCard: View {
             return "We could not confirm the last save. Keep the app open and try again before finishing."
         }
         if let lastSavedAt {
-            return "Saved on this iPhone at \(AppFormat.shortTime(lastSavedAt)). Use Done for now to come back later, or Finish & Save to move it into History."
+            return "Saved on this iPhone at \(AppFormat.shortTime(lastSavedAt)). Tap any weight or reps number to type an exact value. Use Done for now to come back later, or Finish & Save to move it into History."
         }
-        return "Changes save automatically while you log. Use Done for now to come back later, or Finish & Save to move it into History."
+        return "Changes save automatically while you log. Tap any weight or reps number to type an exact value. Use Done for now to come back later, or Finish & Save to move it into History."
     }
 }
 

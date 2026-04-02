@@ -199,6 +199,7 @@ struct EmptyStateCard: View {
 }
 
 struct ActiveWorkoutBanner: View {
+    @EnvironmentObject private var store: LiftLogStore
     let action: () -> Void
 
     var body: some View {
@@ -210,7 +211,7 @@ struct ActiveWorkoutBanner: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Workout in progress")
                         .font(.headline)
-                    Text("Your current workout is still open. Jump back in anytime and keep logging.")
+                    Text(resumeSubtitle)
                         .font(.subheadline)
                         .foregroundStyle(AppTheme.textSecondary)
                 }
@@ -221,5 +222,15 @@ struct ActiveWorkoutBanner: View {
                 action()
             }
         }
+    }
+
+    private var resumeSubtitle: String {
+        guard let activeWorkout = store.activeWorkout else {
+            return "Your current workout is still open. Jump back in anytime and keep logging."
+        }
+
+        let exerciseCount = activeWorkout.exerciseLogs.count
+        let exerciseText = exerciseCount == 0 ? "No exercises yet" : "\(exerciseCount) exercise\(exerciseCount == 1 ? "" : "s") logged"
+        return "\(exerciseText) since \(AppFormat.shortTime(activeWorkout.startedAt))."
     }
 }

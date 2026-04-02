@@ -17,13 +17,13 @@ struct HomeScreen: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Workout in progress")
                                 .font(.headline)
-                            Text("Jump back in and keep logging.")
+                            Text(activeWorkoutSummary)
                                 .font(.subheadline)
                                 .foregroundStyle(AppTheme.textSecondary)
                         }
                         Spacer()
                     }
-                    Text("Your workout is already open. Jump back in and keep logging.")
+                    Text("Your workout is already open and still saving locally as you go.")
                         .font(.subheadline)
                         .foregroundStyle(AppTheme.textSecondary)
                     PrimaryActionButton(title: "Continue Workout", systemImage: "arrow.clockwise") {
@@ -126,5 +126,12 @@ struct HomeScreen: View {
                 }
             }
         }
+    }
+
+    private var activeWorkoutSummary: String {
+        guard let workout = store.activeWorkout else { return "Jump back in and keep logging." }
+        let exerciseCount = workout.exerciseLogs.count
+        let exerciseText = exerciseCount == 0 ? "No exercises yet" : "\(exerciseCount) exercise\(exerciseCount == 1 ? "" : "s") logged"
+        return "\(exerciseText) since \(AppFormat.shortTime(workout.startedAt))."
     }
 }
