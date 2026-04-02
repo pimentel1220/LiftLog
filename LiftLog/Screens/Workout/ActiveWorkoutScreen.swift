@@ -26,9 +26,13 @@ struct ActiveWorkoutScreen: View {
                 if workout.exerciseLogs.isEmpty {
                     EmptyStateCard(
                         title: "Add your first exercise",
-                        subtitle: "Pick an exercise and LiftLog will show what you used last time right away.",
-                        systemImage: "dumbbell"
-                    )
+                        subtitle: "Choose an exercise, log a set, and LiftLog will start remembering your last lift right away.",
+                        systemImage: "dumbbell",
+                        footnote: "Your workout saves automatically on this device while you log.",
+                        actionTitle: "Choose Exercise"
+                    ) {
+                        isShowingAddExercise = true
+                    }
                 } else {
                     ForEach(workout.exerciseLogs) { log in
                         ActiveExerciseCard(log: log)
@@ -93,6 +97,10 @@ private struct WorkoutSummaryCard: View {
                     .background(AppTheme.cardSecondary)
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
+
+            Text("Changes save automatically while you log. Tap Finish when you're done to move this workout into History.")
+                .font(.caption)
+                .foregroundStyle(AppTheme.textSecondary)
         }
     }
 }

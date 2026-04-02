@@ -25,6 +25,12 @@ enum AppFormat {
         return formatter.string(from: date)
     }
 
+    static func monthYear(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "LLLL yyyy"
+        return formatter.string(from: date)
+    }
+
     static func weight(_ value: Double) -> String {
         if value == 0 { return "Bodyweight" }
         if value.rounded(.down) == value {

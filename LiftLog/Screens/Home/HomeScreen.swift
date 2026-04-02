@@ -30,10 +30,27 @@ struct HomeScreen: View {
                     PrimaryActionButton(title: "Start Workout", systemImage: "play.fill") {
                         store.startWorkout()
                     }
+                    Text("Your first workout takes about 30 seconds to start. Add one exercise, log a set, and LiftLog will remember it for next time.")
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.textSecondary)
                     if store.recentWorkouts.first != nil {
                         SecondaryActionButton(title: "Duplicate Last Workout", systemImage: "square.on.square") {
                             store.startWorkout(copyLastWorkout: true)
                         }
+                    }
+                }
+            }
+
+            if store.recentWorkouts.isEmpty {
+                EmptyStateCard(
+                    title: "Ready for your first workout",
+                    subtitle: "Start with one exercise, log the weight and reps, and LiftLog will keep your last lift easy to find next time.",
+                    systemImage: "sparkles",
+                    footnote: "Good first picks: Leg Press, Chest Press, Lat Pulldown, or Dumbbell Bench.",
+                    actionTitle: store.hasActiveWorkout ? "Continue Workout" : "Start First Workout"
+                ) {
+                    if !store.hasActiveWorkout {
+                        store.startWorkout()
                     }
                 }
             }
@@ -67,6 +84,9 @@ struct HomeScreen: View {
 
                 if store.favoriteExercises.isEmpty {
                     Text("Favorite a few exercises to keep them one tap away.")
+                        .foregroundStyle(AppTheme.textSecondary)
+                    Text("Tip: open any exercise and tap the star so your usual machines stay easy to reach.")
+                        .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
                 } else {
                     ForEach(store.favoriteExercises.prefix(4)) { exercise in

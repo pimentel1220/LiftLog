@@ -11,11 +11,25 @@ struct ProgressScreen: View {
         AppScreen(title: "Progress") {
             if stats.isEmpty {
                 EmptyStateCard(
-                    title: "Progress will show up here",
-                    subtitle: "Finish a few workouts and LiftLog will surface personal bests and recent trends.",
-                    systemImage: "chart.bar.fill"
-                )
+                    title: "Progress gets useful after your first few workouts",
+                    subtitle: "LiftLog will surface your best weights and recent trends automatically as soon as you build a little history.",
+                    systemImage: "chart.bar.fill",
+                    footnote: "The more consistently you log, the easier it becomes to see if you're moving up.",
+                    actionTitle: store.hasActiveWorkout ? "Continue Workout" : "Start Workout"
+                ) {
+                    if !store.hasActiveWorkout {
+                        store.startWorkout()
+                    }
+                }
             } else {
+                AppCard {
+                    Text("Keep showing up")
+                        .font(.headline)
+                    Text("The biggest win here is consistency. LiftLog keeps your last lift and best lift easy to find so your next workout feels automatic.")
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+
                 AppCard {
                     Text("Personal Bests")
                         .font(.headline)

@@ -161,6 +161,9 @@ struct EmptyStateCard: View {
     let title: String
     let subtitle: String
     let systemImage: String
+    var footnote: String? = nil
+    var actionTitle: String? = nil
+    var action: (() -> Void)? = nil
 
     var body: some View {
         AppCard {
@@ -173,6 +176,16 @@ struct EmptyStateCard: View {
                 Text(subtitle)
                     .font(.subheadline)
                     .foregroundStyle(AppTheme.textSecondary)
+                if let footnote, !footnote.isEmpty {
+                    Text(footnote)
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+                if let actionTitle, let action {
+                    PrimaryActionButton(title: actionTitle, systemImage: "arrow.right") {
+                        action()
+                    }
+                }
             }
         }
     }

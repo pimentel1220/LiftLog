@@ -52,9 +52,19 @@ struct ExerciseDetailScreen: View {
                             .font(.headline)
                         let history = store.history(for: exercise.id)
                         if history.isEmpty {
-                            Text("No history yet. Log this exercise in a workout and LiftLog will show your last lift here.")
-                                .font(.subheadline)
-                                .foregroundStyle(AppTheme.textSecondary)
+                            VStack(alignment: .leading, spacing: 8) {
+                                Image(systemName: "clock.badge.questionmark")
+                                    .font(.title3)
+                                    .foregroundStyle(AppTheme.accent)
+                                Text("No history for this exercise yet")
+                                    .font(.subheadline.weight(.semibold))
+                                Text("Once you log this exercise in a workout, LiftLog will show your last lift here so it is easy to repeat or beat next time.")
+                                    .font(.subheadline)
+                                    .foregroundStyle(AppTheme.textSecondary)
+                                Text("This is where the app becomes especially useful for machines and repeat exercises.")
+                                    .font(.caption)
+                                    .foregroundStyle(AppTheme.textSecondary)
+                            }
                         } else {
                             ForEach(history, id: \.workout.id) { item in
                                 VStack(alignment: .leading, spacing: 6) {
