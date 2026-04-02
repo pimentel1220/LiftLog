@@ -20,7 +20,9 @@ struct ExercisesScreen: View {
                         footnote: "This becomes your easy-to-scan reference list for machines, cables, free weights, and bodyweight movements.",
                         actionTitle: store.hasActiveWorkout ? "Continue Workout" : "Start Workout"
                     ) {
-                        if !store.hasActiveWorkout {
+                        if store.hasActiveWorkout {
+                            store.resumeActiveWorkout()
+                        } else {
                             store.startWorkout()
                         }
                     }

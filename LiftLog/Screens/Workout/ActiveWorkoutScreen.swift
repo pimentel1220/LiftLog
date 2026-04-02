@@ -44,12 +44,12 @@ struct ActiveWorkoutScreen: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                Button("Close") {
+                Button("Done for now") {
                     dismiss()
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Finish") {
+                Button("Finish & Save") {
                     store.finishWorkout()
                     dismiss()
                 }
@@ -117,9 +117,9 @@ private struct WorkoutSummaryCard: View {
             return "We could not confirm the last save. Keep the app open and try again before finishing."
         }
         if let lastSavedAt {
-            return "Saved on this iPhone at \(AppFormat.shortTime(lastSavedAt)). Tap Finish when you're done to move this workout into History."
+            return "Saved on this iPhone at \(AppFormat.shortTime(lastSavedAt)). Use Done for now to come back later, or Finish & Save to move it into History."
         }
-        return "Changes save automatically while you log. Tap Finish when you're done to move this workout into History."
+        return "Changes save automatically while you log. Use Done for now to come back later, or Finish & Save to move it into History."
     }
 }
 

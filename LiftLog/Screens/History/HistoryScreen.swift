@@ -25,7 +25,9 @@ struct HistoryScreen: View {
                     footnote: "Start with one exercise and this screen becomes your running gym log.",
                     actionTitle: store.hasActiveWorkout ? "Continue Workout" : "Start Workout"
                 ) {
-                    if !store.hasActiveWorkout {
+                    if store.hasActiveWorkout {
+                        store.resumeActiveWorkout()
+                    } else {
                         store.startWorkout()
                     }
                 }

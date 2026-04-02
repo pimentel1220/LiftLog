@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RootTabView: View {
     @EnvironmentObject private var store: LiftLogStore
+    @State private var isWorkoutPresented = false
 
     var body: some View {
         TabView {
@@ -41,21 +42,25 @@ struct RootTabView: View {
             }
         }
         .tint(AppTheme.accent)
-        .fullScreenCover(isPresented: workoutCoverBinding) {
+        .fullScreenCover(isPresented: $isWorkoutPresented) {
             NavigationStack {
                 ActiveWorkoutScreen()
             }
         }
-    }
-
-    private var workoutCoverBinding: Binding<Bool> {
-        Binding(
-            get: { store.activeWorkout != nil },
-            set: { isPresented in
-                if !isPresented, store.activeWorkout?.exerciseLogs.isEmpty == true {
-                    store.discardActiveWorkout()
-                }
+        .onAppear {
+            isWorkoutPresented = store.hasActiveWorkout && store.shouldPresentActiveWorkout
+        }
+        .onChange(of: store.shouldPresentActiveWorkout) { _, shouldPresent in
+            if shouldPresent && store.hasActiveWorkout {
+                isWorkoutPresented = true
             }
-        )
+        }
+        .onChange(of: isWorkoutPresented) { _, isPresented in
+            if !isPresented, store.activeWorkout?.exerciseLogs.isEmpty == true {
+                store.discardActiveWorkout()
+            } else if !isPresented {
+                store.shouldPresentActiveWorkout = false
+            }
+        }
     }
 }

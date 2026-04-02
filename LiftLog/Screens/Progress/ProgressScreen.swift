@@ -17,7 +17,9 @@ struct ProgressScreen: View {
                     footnote: "The more consistently you log, the easier it becomes to see if you're moving up.",
                     actionTitle: store.hasActiveWorkout ? "Continue Workout" : "Start Workout"
                 ) {
-                    if !store.hasActiveWorkout {
+                    if store.hasActiveWorkout {
+                        store.resumeActiveWorkout()
+                    } else {
                         store.startWorkout()
                     }
                 }

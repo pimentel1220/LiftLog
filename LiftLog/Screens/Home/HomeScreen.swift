@@ -26,6 +26,9 @@ struct HomeScreen: View {
                     Text("Your workout is already open. Jump back in and keep logging.")
                         .font(.subheadline)
                         .foregroundStyle(AppTheme.textSecondary)
+                    PrimaryActionButton(title: "Continue Workout", systemImage: "arrow.clockwise") {
+                        store.resumeActiveWorkout()
+                    }
                 } else {
                     PrimaryActionButton(title: "Start Workout", systemImage: "play.fill") {
                         store.startWorkout()
@@ -49,7 +52,9 @@ struct HomeScreen: View {
                     footnote: "Good first picks: Leg Press, Chest Press, Lat Pulldown, or Dumbbell Bench.",
                     actionTitle: store.hasActiveWorkout ? "Continue Workout" : "Start First Workout"
                 ) {
-                    if !store.hasActiveWorkout {
+                    if store.hasActiveWorkout {
+                        store.resumeActiveWorkout()
+                    } else {
                         store.startWorkout()
                     }
                 }

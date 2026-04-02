@@ -9,6 +9,7 @@ final class LiftLogStore: ObservableObject {
     @Published private(set) var lastSavedAt: Date?
     @Published private(set) var hasSaveError = false
     @Published private(set) var preferences = AppPreferences()
+    @Published var shouldPresentActiveWorkout = false
     @Published var tier: AppTier = .free
 
     private let persistence = PersistenceController()
@@ -88,11 +89,13 @@ final class LiftLogStore: ObservableObject {
         } else {
             activeWorkout = WorkoutDraft(id: UUID(), startedAt: Date(), exerciseLogs: [], notes: "")
         }
+        shouldPresentActiveWorkout = true
         persist()
     }
 
     func discardActiveWorkout() {
         activeWorkout = nil
+        shouldPresentActiveWorkout = false
         persist()
     }
 
@@ -111,6 +114,7 @@ final class LiftLogStore: ObservableObject {
             syncPRsFromWorkout(workout)
         }
         activeWorkout = nil
+        shouldPresentActiveWorkout = false
         persist()
     }
 
@@ -281,6 +285,11 @@ final class LiftLogStore: ObservableObject {
         persist()
     }
 
+    func resumeActiveWorkout() {
+        guard hasActiveWorkout else { return }
+        shouldPresentActiveWorkout = true
+    }
+
     func deletePRRecord(_ id: UUID) {
         prRecords.removeAll { $0.id == id }
         persist()
@@ -361,6 +370,7 @@ final class LiftLogStore: ObservableObject {
         activeWorkout = state.activeWorkout
         prRecords = state.prRecords
         preferences = state.preferences
+        shouldPresentActiveWorkout = false
         tier = state.tier
         persist()
     }
@@ -372,6 +382,7 @@ final class LiftLogStore: ObservableObject {
         activeWorkout = state.activeWorkout
         prRecords = state.prRecords
         preferences = state.preferences
+        shouldPresentActiveWorkout = false
         tier = state.tier
         persist()
     }
