@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsScreen: View {
     @EnvironmentObject private var store: LiftLogStore
+    @EnvironmentObject private var premiumManager: PremiumManager
 
     var body: some View {
         AppScreen(title: "Settings") {
@@ -10,8 +11,19 @@ struct SettingsScreen: View {
                     .font(.headline)
                 settingRow(title: "Storage", value: "Local on this device")
                 settingRow(title: "Weight Unit", value: store.weightUnit.title)
-                settingRow(title: "Plan", value: store.tier.rawValue.capitalized)
+                settingRow(title: "Plan", value: premiumManager.unlockType.displayName)
                 settingRow(title: "Cloud Sync", value: "Ready for v2")
+            }
+
+            AppCard {
+                Text("Premium")
+                    .font(.headline)
+                Text("Beta testers automatically keep Premium on TestFlight builds. Future purchases and ad-based unlocks can plug into the same premium manager without replacing this reward.")
+                    .font(.subheadline)
+                    .foregroundStyle(AppTheme.textSecondary)
+
+                settingRow(title: "Access", value: premiumManager.hasPremiumAccess() ? "Unlocked" : "Free")
+                settingRow(title: "Unlock Type", value: premiumManager.unlockType.displayName)
             }
 
             AppCard {

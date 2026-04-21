@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RootTabView: View {
     @EnvironmentObject private var store: LiftLogStore
+    @EnvironmentObject private var premiumManager: PremiumManager
     @State private var isWorkoutPresented = false
 
     var body: some View {
@@ -61,6 +62,13 @@ struct RootTabView: View {
             } else if !isPresented {
                 store.shouldPresentActiveWorkout = false
             }
+        }
+        .alert("Premium unlocked", isPresented: $premiumManager.shouldShowBetaRewardMessage) {
+            Button("Nice") {
+                premiumManager.markBetaRewardMessageShown()
+            }
+        } message: {
+            Text("Thanks for being an early tester. You've unlocked Premium for free.")
         }
     }
 }
