@@ -117,8 +117,9 @@ final class LiftLogStore: ObservableObject {
         persist()
     }
 
-    func finishWorkout() {
-        guard let draft = activeWorkout, !draft.exerciseLogs.isEmpty else { return }
+    @discardableResult
+    func finishWorkout() -> Bool {
+        guard let draft = activeWorkout, !draft.exerciseLogs.isEmpty else { return false }
         let workout = Workout(
             id: draft.id,
             startedAt: draft.startedAt,
@@ -127,13 +128,24 @@ final class LiftLogStore: ObservableObject {
             notes: draft.notes,
             updatedAt: Date()
         )
+        let previousWorkouts = workouts
+        let previousPRRecords = prRecords
         workouts.append(workout)
         if preferences.syncPRsWithWorkouts {
             syncPRsFromWorkout(workout)
         }
         activeWorkout = nil
         shouldPresentActiveWorkout = false
-        persist()
+        if persist() {
+            return true
+        }
+
+        workouts = previousWorkouts
+        prRecords = previousPRRecords
+        activeWorkout = draft
+        shouldPresentActiveWorkout = true
+        hasSaveError = true
+        return false
     }
 
     func addExerciseToActiveWorkout(exercise: ExerciseDefinition) {
@@ -483,7 +495,8 @@ final class LiftLogStore: ObservableObject {
         persist()
     }
 
-    private func persist() {
+    @discardableResult
+    private func persist() -> Bool {
         let didSave = persistence.save(
             PersistedAppState(
                 exercises: exercises,
@@ -498,6 +511,7 @@ final class LiftLogStore: ObservableObject {
         if didSave {
             lastSavedAt = Date()
         }
+        return didSave
     }
 
     private func syncPRsFromWorkout(_ workout: Workout) {

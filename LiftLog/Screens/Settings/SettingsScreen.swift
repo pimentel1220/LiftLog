@@ -83,6 +83,31 @@ struct SettingsScreen: View {
                     .font(.subheadline)
                     .foregroundStyle(AppTheme.textSecondary)
             }
+
+            AppCard {
+                Text("Beta Feedback")
+                    .font(.headline)
+                Text("If something feels broken, confusing, or just off during a workout, send yourself a quick report and forward it to me. Including the app version helps me fix issues faster.")
+                    .font(.subheadline)
+                    .foregroundStyle(AppTheme.textSecondary)
+
+                settingRow(title: "App Version", value: appVersionLabel)
+
+                ShareLink(item: bugReportTemplate) {
+                    HStack {
+                        Image(systemName: "ladybug.fill")
+                        Text("Share Bug or Issue")
+                            .fontWeight(.semibold)
+                        Spacer()
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(AppTheme.cardSecondary)
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 
@@ -93,5 +118,37 @@ struct SettingsScreen: View {
             Text(value)
                 .foregroundStyle(AppTheme.textSecondary)
         }
+    }
+
+    private var appVersionLabel: String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
+        return "\(version) (\(build))"
+    }
+
+    private var bugReportTemplate: String {
+        """
+        LiftLog Beta Bug or Issue Report
+
+        App Version: \(appVersionLabel)
+        Device: \(deviceModel)
+        iOS: \(operatingSystemVersion)
+
+        What happened:
+
+        What I expected:
+
+        Steps to reproduce:
+
+        Notes:
+        """
+    }
+
+    private var deviceModel: String {
+        UIDevice.current.model
+    }
+
+    private var operatingSystemVersion: String {
+        UIDevice.current.systemVersion
     }
 }

@@ -6,6 +6,7 @@ struct ActiveWorkoutScreen: View {
     @State private var isShowingAddExercise = false
     @State private var isShowingNotes = false
     @State private var hasAutoPromptedFirstExercise = false
+    @State private var isFinishingWorkout = false
 
     var body: some View {
         AppScreen(title: "Workout") {
@@ -50,12 +51,17 @@ struct ActiveWorkoutScreen: View {
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Finish & Save") {
-                    store.finishWorkout()
-                    dismiss()
+                Button(isFinishingWorkout ? "Saving..." : "Finish & Save") {
+                    guard !isFinishingWorkout else { return }
+                    isFinishingWorkout = true
+                    if store.finishWorkout() {
+                        dismiss()
+                    } else {
+                        isFinishingWorkout = false
+                    }
                 }
                 .fontWeight(.semibold)
-                .disabled(store.activeWorkout?.exerciseLogs.isEmpty != false)
+                .disabled(store.activeWorkout?.exerciseLogs.isEmpty != false || isFinishingWorkout)
             }
         }
         .sheet(isPresented: $isShowingAddExercise) {
@@ -621,6 +627,20 @@ private struct AddExerciseSheet: View {
     @State private var selectedCategory: ExerciseCategory = .machines
     @State private var notes = ""
 
+    private var trimmedNewExerciseName: String {
+        newExerciseName.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var matchingSavedExercise: ExerciseDefinition? {
+        guard !trimmedNewExerciseName.isEmpty else { return nil }
+        return store.findExercise(named: trimmedNewExerciseName, category: selectedCategory)
+    }
+
+    private var isMatchingExerciseAlreadyAdded: Bool {
+        guard let matchingSavedExercise else { return false }
+        return activeExerciseIDs.contains(matchingSavedExercise.id)
+    }
+
     private var templates: [ExerciseTemplate] {
         let base = ExerciseCatalog.templates(for: selectedCategory)
         guard !searchText.isEmpty else { return base }
@@ -780,12 +800,17 @@ private struct AddExerciseSheet: View {
                             .padding(12)
                             .background(AppTheme.cardSecondary)
                             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                        Button(store.findExercise(named: newExerciseName.trimmingCharacters(in: .whitespacesAndNewlines), category: selectedCategory) == nil ? "Create and Add" : "Add Existing Exercise") {
+                        if isMatchingExerciseAlreadyAdded {
+                            Text("That exercise is already in this workout.")
+                                .font(.caption)
+                                .foregroundStyle(AppTheme.textSecondary)
+                        }
+                        Button(matchingSavedExercise == nil ? "Create and Add" : "Add Existing Exercise") {
                             let exercise = store.createExercise(name: newExerciseName, category: selectedCategory, notes: notes)
                             store.addExerciseToActiveWorkout(exercise: exercise)
                             dismiss()
                         }
-                        .disabled(newExerciseName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                        .disabled(trimmedNewExerciseName.isEmpty || isMatchingExerciseAlreadyAdded)
                     }
                 }
             }
